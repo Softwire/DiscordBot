@@ -1,36 +1,31 @@
-﻿using System;
-using System.Threading.Tasks;
-using Discord;
-using Discord.WebSocket;
+﻿using System.Threading.Tasks;
+using DSharpPlus;
 
 namespace DiscordBot
 {
-    class Program
+    internal class Program
     {
-        private DiscordSocketClient _client;
-
-
-        public static void Main(string[] args)
-            => new Program().MainAsync().GetAwaiter().GetResult();
-
-        public async Task MainAsync()
+        private static void Main(string[] args)
         {
-            _client = new DiscordSocketClient();
-            
-            _client.Log += Log;
-            
-            var token = ""; // Insert token here locally. Don't push with it in
-            
-            await _client.LoginAsync(TokenType.Bot, token);
-            await _client.StartAsync();
-
-            await Task.Delay(-1);
+            MainAsync().GetAwaiter().GetResult();
         }
 
-        private Task Log(LogMessage msg)
+        private static async Task MainAsync()
         {
-            Console.WriteLine(msg.ToString());
-            return Task.CompletedTask;
+            var discord = new DiscordClient(new DiscordConfiguration
+            {
+                Token = "",
+                TokenType = TokenType.Bot
+            });
+
+            discord.MessageCreated += async e =>
+            {
+                if (e.Message.Content.ToLower().StartsWith("ping"))
+                    await e.Message.RespondAsync("pong!");
+            };
+
+            await discord.ConnectAsync();
+            await Task.Delay(-1);
         }
     }
 }
