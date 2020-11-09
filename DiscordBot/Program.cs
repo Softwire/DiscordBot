@@ -1,21 +1,29 @@
 ﻿using System.Threading.Tasks;
+using DiscordBot.Commands;
 using DSharpPlus;
+using DSharpPlus.CommandsNext;
+using DSharpPlus.Interactivity;
 
 namespace DiscordBot
 {
     internal class Program
     {
+        private static CommandsNextModule commands;
+        private static InteractivityModule interactivity;
+
         private static void Main(string[] args)
         {
-            MainAsync().GetAwaiter().GetResult();
+            MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
-        private static async Task MainAsync()
+        private static async Task MainAsync(string[] args)
         {
             var discord = new DiscordClient(new DiscordConfiguration
             {
                 Token = "",
-                TokenType = TokenType.Bot
+                TokenType = TokenType.Bot,
+                UseInternalLogHandler = true,
+                LogLevel = LogLevel.Debug
             });
 
             discord.MessageCreated += async e =>
@@ -23,6 +31,15 @@ namespace DiscordBot
                 if (e.Message.Content.ToLower().StartsWith("ping"))
                     await e.Message.RespondAsync("pong!");
             };
+
+            commands = discord.UseCommandsNext(new CommandsNextConfiguration
+            {
+                StringPrefix = "?"
+            });
+
+            commands.RegisterCommands<EventCommands>();
+
+            interactivity = discord.UseInteractivity(new InteractivityConfiguration());
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
