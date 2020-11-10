@@ -20,8 +20,8 @@ namespace DiscordBot
         {
             var discord = new DiscordClient(new DiscordConfiguration
             {
-                Token = secrets.RELEASE_BOT_TOKEN,
-                TokenType = TokenType.Bot,
+                Token = Environment.GetEnvironmentVariable("RELEASE_BOT_TOKEN"),
+                TokenType = TokenType.Bot
                 UseInternalLogHandler = true,
                 LogLevel = LogLevel.Debug
             });
