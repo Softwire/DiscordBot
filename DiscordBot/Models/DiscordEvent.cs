@@ -11,10 +11,11 @@ namespace DiscordBot.Models
         public DateTime Time { get; }
         public IEnumerable<Signup> Signups = new List<Signup>();
 
-        public DiscordEvent(string name, string description, DateTime time)
+        public DiscordEvent(string name, string description, int key, DateTime time)
         {
             Name = name;
             Description = description;
+            Key = key;
             Time = time;
         }
     }
