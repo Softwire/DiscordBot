@@ -1,6 +1,6 @@
 ﻿namespace DiscordBot.Models
 {
-    class Signup
+    public class Signup
     {
         public string Id { get; }
         public string Role { get; }
