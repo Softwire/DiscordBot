@@ -31,7 +31,7 @@ namespace DiscordBot.Commands
             var interactivity = context.Client.GetInteractivityModule();
             var response = await interactivity.WaitForMessageAsync(
                 message =>
-                    IsValidResponse(message.Content, EventOperations),
+                    IsValidResponse(message.Content),
                 TimeSpan.FromSeconds(30));
 
             if (response == null)
@@ -44,9 +44,9 @@ namespace DiscordBot.Commands
             }
         }
 
-        private bool IsValidResponse(string response, IEnumerable<string> validResponses)
+        private bool IsValidResponse(string response)
         {
-            return validResponses.Contains(response);
+            return EventOperations.Contains(response);
         }
     }
 }
