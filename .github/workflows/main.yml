@@ -8,7 +8,7 @@ on:
     branches:
       - '*'
 env:
-  AZURE_WEBAPP_NAME: DiscordBot    # set this to your application's name
+  AZURE_WEBAPP_NAME: discordbotsoftwire    # set this to your application's name
   AZURE_WEBAPP_PACKAGE_PATH: '.'      # set this to the path to your web app project, defaults to the repository root
   DOTNET_VERSION: '3.1.102'           # set this to the dot net version to use
 
