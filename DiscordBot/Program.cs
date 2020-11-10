@@ -11,12 +11,12 @@ namespace DiscordBot
         private static CommandsNextModule commands;
         private static InteractivityModule interactivity;
 
-        private static void Main(string[] args)
+        private static void Main()
         {
-            MainAsync(args).ConfigureAwait(false).GetAwaiter().GetResult();
+            MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
         }
 
-        private static async Task MainAsync(string[] args)
+        private static async Task MainAsync()
         {
             var discord = new DiscordClient(new DiscordConfiguration
             {
