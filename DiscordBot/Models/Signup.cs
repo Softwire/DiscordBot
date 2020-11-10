@@ -2,8 +2,8 @@
 {
     class Signup
     {
-        public string Id;
-        public string Role;
+        public string Id { get; }
+        public string Role { get; }
 
         public Signup(string id, string role)
         {
