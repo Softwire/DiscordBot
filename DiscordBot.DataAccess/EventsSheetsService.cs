@@ -17,27 +17,12 @@ namespace DiscordBot.DataAccess
         private static readonly string applicationName = "Softwire Discord Bot";
         private static readonly string spreadsheetId = "";
 
-        private SheetsService sheetsService;
+        private readonly SheetsService sheetsService;
 
-        private static async Task<ServiceAccountCredential> GetCredentialsAsync(string path = "credentials.json")
+        public EventsSheetsService()
         {
-            await using var stream =
-                new FileStream(path, FileMode.Open, FileAccess.Read);
+            var credential = GetCredential();
 
-            var googleCredential = GoogleCredential.FromStreamAsync(stream, CancellationToken.None);
-
-            return (await googleCredential)
-                .CreateScoped(scopes)
-                .UnderlyingCredential as ServiceAccountCredential;
-        }
-
-        public EventsSheetsService() { }
-
-        public async Task StartService()
-        {
-            var credential = await GetCredentialsAsync();
-
-            // Create Google Sheets API service.
             sheetsService = new SheetsService(new BaseClientService.Initializer
             {
                 HttpClientInitializer = credential,
@@ -53,15 +38,16 @@ namespace DiscordBot.DataAccess
 
             var response = await request.ExecuteAsync();
             var values = response.Values;
-            if (values != null && values.Count > 0)
-            {
-                Console.WriteLine("Alpha, Numeric");
-                foreach (var row in values)
-                    Console.WriteLine($"{row[0]}, {row[1]}");
-            }
-            else
+            if (values == null || values.Count <= 0)
             {
                 Console.WriteLine("No data found.");
+                return;
+            }
+
+            Console.WriteLine("Alpha, Numeric");
+            foreach (var row in values)
+            {
+                Console.WriteLine($"{row[0]}, {row[1]}");
             }
         }
 
@@ -82,8 +68,17 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Update(valueRange, spreadsheetId, "A30:B30");
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
-            var response = await request.ExecuteAsync();
+            await request.ExecuteAsync();
         }
 
+        private static ServiceAccountCredential GetCredential(string path = "credentials.json")
+        {
+            using var stream =
+                new FileStream(path, FileMode.Open, FileAccess.Read);
+
+            return GoogleCredential.FromStream(stream)
+                .CreateScoped(scopes)
+                .UnderlyingCredential as ServiceAccountCredential;
+        }
     }
 }

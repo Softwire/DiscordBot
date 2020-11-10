@@ -7,7 +7,6 @@ namespace DiscordBot.DataAccess
         private static async Task Main(string[] args)
         {
             var service = new EventsSheetsService();
-            await service.StartService();
 
             await service.ReadColumns();
 
