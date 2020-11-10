@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
@@ -8,6 +10,14 @@ namespace DiscordBot.Commands
 {
     internal class EventCommands
     {
+        private static readonly string[] EventOperations =
+        {
+            "create",
+            "rm",
+            "edit",
+            "stop"
+        };
+
         [Command("event")]
         public async Task Event(CommandContext context)
         {
@@ -21,10 +31,7 @@ namespace DiscordBot.Commands
             var interactivity = context.Client.GetInteractivityModule();
             var response = await interactivity.WaitForMessageAsync(
                 message =>
-                    message.Content.ToLower() == "create" ||
-                    message.Content.ToLower() == "rm" ||
-                    message.Content.ToLower() == "edit" ||
-                    message.Content.ToLower() == "stop",
+                    IsValidResponse(message.Content, EventOperations),
                 TimeSpan.FromSeconds(30));
 
             if (response == null)
@@ -35,6 +42,11 @@ namespace DiscordBot.Commands
             {
                 await context.RespondAsync(response.Message.Content);
             }
+        }
+
+        private bool IsValidResponse(string response, IEnumerable<string> validResponses)
+        {
+            return validResponses.Contains(response);
         }
     }
 }
