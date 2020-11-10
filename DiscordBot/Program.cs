@@ -8,9 +8,6 @@ namespace DiscordBot
 {
     internal class Program
     {
-        private static CommandsNextModule commands;
-        private static InteractivityModule interactivity;
-
         private static void Main()
         {
             MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
@@ -32,14 +29,14 @@ namespace DiscordBot
                     await e.Message.RespondAsync("pong!");
             };
 
-            commands = discord.UseCommandsNext(new CommandsNextConfiguration
+            var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
                 StringPrefix = "?"
             });
 
             commands.RegisterCommands<EventCommands>();
 
-            interactivity = discord.UseInteractivity(new InteractivityConfiguration());
+            var interactivity = discord.UseInteractivity(new InteractivityConfiguration());
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
