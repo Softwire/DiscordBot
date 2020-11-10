@@ -14,7 +14,7 @@ namespace DiscordBot
         {
             var discord = new DiscordClient(new DiscordConfiguration
             {
-                Token = secrets.RELEASE_BOT_TOKEN,
+                Token = Environment.GetEnvironmentVariable("RELEASE_BOT_TOKEN"),
                 TokenType = TokenType.Bot
             });
 
