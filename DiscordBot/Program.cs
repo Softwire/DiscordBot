@@ -24,12 +24,6 @@ namespace DiscordBot
                 LogLevel = LogLevel.Debug
             });
 
-            discord.MessageCreated += async e =>
-            {
-                if (e.Message.Content.ToLower().StartsWith("ping"))
-                    await e.Message.RespondAsync("pong!");
-            };
-
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
                 StringPrefix = "?"
