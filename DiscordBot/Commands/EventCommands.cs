@@ -74,9 +74,15 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            if (!DateTimeOffset.TryParse(eventTimeResponse, out var eventTime))
+            DateTimeOffset eventTime;
+
+            try
             {
-                await context.RespondAsync($"{context.Member.Mention} - operation stopped. (invalid date format)");
+                eventTime = DateTimeOffset.Parse(eventTimeResponse);
+            }
+            catch (FormatException exception)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped: {exception.Message}");
                 return;
             }
 
