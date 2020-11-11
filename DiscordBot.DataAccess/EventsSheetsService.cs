@@ -14,7 +14,7 @@ namespace DiscordBot.DataAccess
     public interface IEventsSheetsService
     {
         Task AddEventAsync(string name, string description, DateTime time);
-        Task EditEventAsync(int key, string? description, string? name, DateTime? time);
+        Task EditEventAsync(int key, string? description = null, string? name = null, DateTime? time = null);
         Task RemoveEventAsync(int key);
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
@@ -85,7 +85,11 @@ namespace DiscordBot.DataAccess
         {
         }
 
-        public async Task EditEventAsync(int key, string? description, string? name, DateTime? time)
+        public async Task EditEventAsync(
+            int key,
+            string? description = null,
+            string? name = null,
+            DateTime? time = null)
         {
         }
 
