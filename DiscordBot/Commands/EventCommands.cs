@@ -68,21 +68,9 @@ namespace DiscordBot.Commands
             }
 
             await context.RespondAsync($"{context.Member.Mention} - what time is your event?");
-            var eventTimeResponse = await GetUserResponse(context, interactivity);
-            if (eventTimeResponse == null)
+            var eventTime = await GetUserTimeResponse(context, interactivity);
+            if (eventTime == null)
             {
-                return;
-            }
-
-            DateTimeOffset eventTime;
-
-            try
-            {
-                eventTime = DateTimeOffset.Parse(eventTimeResponse);
-            }
-            catch (FormatException exception)
-            {
-                await context.RespondAsync($"{context.Member.Mention} - operation stopped: {exception.Message}");
                 return;
             }
 
@@ -119,6 +107,29 @@ namespace DiscordBot.Commands
             }
 
             return response;
+        }
+
+        private static async Task<DateTimeOffset?> GetUserTimeResponse(
+            CommandContext context,
+            InteractivityModule interactivity)
+        {
+            var response = await GetUserResponse(context, interactivity);
+
+            if (response == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return DateTimeOffset.Parse(response);
+            }
+            catch (FormatException exception)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped: {exception.Message}");
+                return null;
+            }
+
         }
 
         private static bool IsValidResponse(DiscordMessage response, CommandContext context, string[]? validStrings)
