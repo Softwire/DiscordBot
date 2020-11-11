@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using DiscordBot.Commands;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
@@ -18,16 +19,10 @@ namespace DiscordBot
             var discord = new DiscordClient(new DiscordConfiguration
             {
                 Token = Environment.GetEnvironmentVariable("RELEASE_BOT_TOKEN"),
-                TokenType = TokenType.Bot
+                TokenType = TokenType.Bot,
                 UseInternalLogHandler = true,
                 LogLevel = LogLevel.Debug
             });
-
-            discord.MessageCreated += async e =>
-            {
-                if (e.Message.Content.ToLower().StartsWith("ping"))
-                    await e.Message.RespondAsync("pong!");
-            };
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
