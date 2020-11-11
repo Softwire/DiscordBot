@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
+using DiscordBot.Models;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
@@ -11,7 +11,17 @@ using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 
 namespace DiscordBot.DataAccess
 {
-    public class EventsSheetsService
+    public interface IEventsSheetsService
+    {
+        Task AddEventAsync(string name, string description, DateTime time);
+        Task EditEventAsync(int key, string? description = null, string? name = null, DateTime? time = null);
+        Task RemoveEventAsync(int key);
+
+        Task<DiscordEvent> GetEventAsync(int eventKey);
+        Task<IEnumerable<DiscordEvent>> ListEventsAsync();
+    }
+
+    public class EventsSheetsService : IEventsSheetsService
     {
         private static readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
         private static readonly string applicationName = "Softwire Discord Bot";
@@ -69,6 +79,35 @@ namespace DiscordBot.DataAccess
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
             await request.ExecuteAsync();
+        }
+
+        public async Task AddEventAsync(string name, string description, DateTime time)
+        {
+        }
+
+        public async Task EditEventAsync(
+            int key,
+            string? description = null,
+            string? name = null,
+            DateTime? time = null)
+        {
+        }
+
+        public async Task RemoveEventAsync(int key)
+        {
+        }
+
+        public async Task<DiscordEvent> GetEventAsync(int eventKey)
+        {
+             return new DiscordEvent("Christmas Day", "Christmas!", eventKey, new DateTime(2020, 12, 25));
+        }
+
+        public async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
+        {
+            return new[]
+            {
+                new DiscordEvent("Christmas Day", "Christmas!", 1, new DateTime(2020, 12, 25))
+            };
         }
 
         private static ServiceAccountCredential GetCredential(string path = "credentials.json")
