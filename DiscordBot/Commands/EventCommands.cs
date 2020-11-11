@@ -95,7 +95,9 @@ namespace DiscordBot.Commands
             await context.RespondAsync(embed: embed);
         }
 
-        private static async Task<string?> GetUserResponse(CommandContext context, InteractivityModule interactivity,
+        private static async Task<string?> GetUserResponse(
+            CommandContext context,
+            InteractivityModule interactivity,
             string[]? validStrings = null)
         {
             var response = interactivity.WaitForMessageAsync(
