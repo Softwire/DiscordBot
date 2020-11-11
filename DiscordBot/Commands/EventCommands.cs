@@ -67,21 +67,17 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            DateTimeOffset eventTime;
-
-            while (true)
+            await context.RespondAsync($"{context.Member.Mention} - what time is your event?");
+            var eventTimeResponse = await GetUserResponse(context, interactivity);
+            if (eventTimeResponse == null)
             {
-                await context.RespondAsync($"{context.Member.Mention} - what time is your event?");
-                var eventTimeResponse = await GetUserResponse(context, interactivity);
-                if (eventTimeResponse == null)
-                {
-                    return;
-                }
+                return;
+            }
 
-                if (DateTimeOffset.TryParse(eventTimeResponse, out eventTime))
-                {
-                    break;
-                }
+            if (!DateTimeOffset.TryParse(eventTimeResponse, out var eventTime))
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped. (invalid date format)");
+                return;
             }
 
             var embed = new DiscordEmbedBuilder
