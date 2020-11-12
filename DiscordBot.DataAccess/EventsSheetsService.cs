@@ -37,6 +37,7 @@ namespace DiscordBot.DataAccess
         private readonly SheetsService sheetsService;
         private int largestKey;
 
+        private const string MetadataSheetName = "EventsMetadata";
         private readonly SheetsColumn KeyColumn = new SheetsColumn(0);
         private readonly SheetsColumn NameColumn = new SheetsColumn(1);
         private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
@@ -99,18 +100,18 @@ namespace DiscordBot.DataAccess
 
             if (name != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumn.Letter}{rowNumber}", name));
+                data.Add(MakeCellUpdate($"{MetadataSheetName}!{NameColumn.Letter}{rowNumber}", name));
             }
 
             if (description != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!{DescriptionColumn}{rowNumber}", description));
+                data.Add(MakeCellUpdate($"{MetadataSheetName}!{DescriptionColumn}{rowNumber}", description));
             }
 
             if (time != null)
             {
                 data.Add(MakeCellUpdate(
-                    $"EventsMetadata!{TimeColumn.Letter}{rowNumber}",
+                    $"{MetadataSheetName}!{TimeColumn.Letter}{rowNumber}",
                     time.Value.ToString("s")
                 ));
             }
@@ -153,7 +154,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn.Letter}:{LocationColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{LocationColumn.Letter}"
                 );
                 request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
                 var response = await request.ExecuteAsync();
@@ -198,7 +199,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = request.Execute();
 
@@ -230,7 +231,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = await request.ExecuteAsync();
 
