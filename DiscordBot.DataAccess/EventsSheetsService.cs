@@ -225,7 +225,7 @@ namespace DiscordBot.DataAccess
             catch (GoogleApiException exception)
             {
                 throw new EventsSheetsInitialisationException(
-                    $"Events Sheets Service couldn't initialise",
+                    "Events Sheets Service couldn't initialise",
                     exception
                 );
             }
@@ -238,7 +238,8 @@ namespace DiscordBot.DataAccess
 
             return GoogleCredential.FromStream(stream)
                 .CreateScoped(scopes)
-                .UnderlyingCredential as ServiceAccountCredential;
+                .UnderlyingCredential as ServiceAccountCredential
+                ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
         }
 
         private int GetLargestKey()
@@ -298,7 +299,7 @@ namespace DiscordBot.DataAccess
                 // Correct for skipping row 1, the header
                 return rowNumber.index + 2;
             }
-            catch (InvalidOperationException e)
+            catch (InvalidOperationException)
             {
                 throw new EventNotFoundException($"Event key {eventKey} not recognised");
             }
