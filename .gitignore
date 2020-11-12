@@ -367,4 +367,4 @@ obj/
 /wwwroot/node_modules
 
 # Google APIs Credentials file
-Discord.DataAccess/**credentials.json
+DiscordBot.DataAccess/*credentials.json
