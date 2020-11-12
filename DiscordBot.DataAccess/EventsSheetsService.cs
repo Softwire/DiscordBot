@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.Models;
+using Google;
 using Google.Apis.Auth.OAuth2;
 using Google.Apis.Services;
 using Google.Apis.Sheets.v4;
@@ -28,6 +30,7 @@ namespace DiscordBot.DataAccess
         private static readonly string spreadsheetId = "";
 
         private readonly SheetsService sheetsService;
+        private int largestKey;
 
         public EventsSheetsService()
         {
@@ -38,6 +41,8 @@ namespace DiscordBot.DataAccess
                 HttpClientInitializer = credential,
                 ApplicationName = applicationName
             });
+
+            largestKey = GetLargestKey();
         }
 
         public async Task ReadColumns()
@@ -83,6 +88,32 @@ namespace DiscordBot.DataAccess
 
         public async Task AddEventAsync(string name, string description, DateTime time)
         {
+            // Allocate new key
+            largestKey++;
+
+            var newRow = new ValueRange
+            {
+                Values = new IList<object>[]
+                {
+                    new object[]
+                    {
+                        largestKey,
+                        name,
+                        description,
+                        time.ToString("s"),
+                        "Europe/London"
+                    }
+                }
+            };
+
+            var request = sheetsService.Spreadsheets.Values.Append(
+                newRow,
+                spreadsheetId,
+                "A:E"
+            );
+            request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
+
+            await request.ExecuteAsync();
         }
 
         public async Task EditEventAsync(
@@ -118,6 +149,35 @@ namespace DiscordBot.DataAccess
             return GoogleCredential.FromStream(stream)
                 .CreateScoped(scopes)
                 .UnderlyingCredential as ServiceAccountCredential;
+        }
+
+        private int GetLargestKey()
+        {
+            try
+            {
+                var request = sheetsService.Spreadsheets.Values.Get(spreadsheetId, "EventsMetadata!A:A");
+                var response = request.Execute();
+
+                if (response == null || response.Values.Count < 1)
+                {
+                    throw new EventsSheetsInitialisationException("Metadata sheet is empty");
+                }
+
+                // If the table only contains headers, and no data
+                if (response.Values.Count == 1)
+                {
+                    return 0;
+                }
+
+                return int.Parse((string)response.Values.Skip(1).Last()[0]);
+            }
+            catch (GoogleApiException exception)
+            {
+                throw new EventsSheetsInitialisationException(
+                    $"Events Sheets Service couldn't initialise",
+                    exception
+                );
+            }
         }
     }
 }
