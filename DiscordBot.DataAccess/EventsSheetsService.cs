@@ -17,7 +17,12 @@ namespace DiscordBot.DataAccess
     {
         Task AddEventAsync(string name, string description, DateTime time);
         Task EditEventAsync(int key, string? description = null, string? name = null, DateTime? time = null);
-        Task RemoveEventAsync(int key);
+        Task EditEventAsync(
+            int eventKey,
+            string? description = null,
+            string? name = null,
+            DateTime? time = null
+        );
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
@@ -117,11 +122,44 @@ namespace DiscordBot.DataAccess
         }
 
         public async Task EditEventAsync(
-            int key,
+            int eventKey,
             string? description = null,
             string? name = null,
-            DateTime? time = null)
+            DateTime? time = null
+        )
         {
+            var rowNumber = await GetEventRowNumber(eventKey);
+
+            var data = new List<ValueRange>();
+
+            if (name != null)
+            {
+                data.Add(MakeCellUpdate($"EventsMetadata!B{rowNumber}", name));
+            }
+
+            if (description != null)
+            {
+                data.Add(MakeCellUpdate($"EventsMetadata!C{rowNumber}", description));
+            }
+
+            if (time != null)
+            {
+                data.Add(MakeCellUpdate($"EventsMetadata!D{rowNumber}", time.Value.ToString("s")));
+            }
+
+            if (!data.Any())
+            {
+                return;
+            }
+
+            var updateRequest = new BatchUpdateValuesRequest()
+            {
+                ValueInputOption = "RAW",
+                Data = data
+            };
+
+            var request = sheetsService.Spreadsheets.Values.BatchUpdate(updateRequest, spreadsheetId);
+            await request.ExecuteAsync();
         }
 
         public async Task RemoveEventAsync(int key)
@@ -178,6 +216,54 @@ namespace DiscordBot.DataAccess
                     exception
                 );
             }
+        }
+
+        private async Task<int> GetEventRowNumber(int eventKey)
+        {
+            try
+            {
+                var request = sheetsService.Spreadsheets.Values.Get(spreadsheetId, "EventsMetadata!A:A");
+                var response = await request.ExecuteAsync();
+
+                if (response == null || response.Values.Count < 2)
+                {
+                    throw new EventNotFoundException($"Event key {eventKey} not recognised");
+                }
+
+                var rowNumber = response.Values
+                    .Skip(1)
+                    .Select((rowValues, rowIndex) =>
+                        (key: int.Parse((string)rowValues[0]), index: rowIndex)
+                    )
+                    .Where(row => row.key == eventKey)
+                    .Select(row => row.index + 2)
+                    .Cast<int?>()
+                    .FirstOrDefault();
+
+                if (rowNumber == null)
+                {
+                    throw new EventNotFoundException($"Event key {eventKey} not recognised");
+                }
+
+                return rowNumber.Value;
+            }
+            catch (GoogleApiException exception)
+            {
+                throw new EventsSheetsInitialisationException(
+                    "Events Sheets Service couldn't initialise",
+                    exception
+                );
+            }
+
+        }
+
+        private ValueRange MakeCellUpdate(string range, object value)
+        {
+            return new ValueRange()
+            {
+                Range = range,
+                Values = new IList<object>[] { new[] { value } }
+            };
         }
     }
 }
