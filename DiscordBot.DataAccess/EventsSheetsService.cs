@@ -246,26 +246,18 @@ namespace DiscordBot.DataAccess
                 }
 
                 var rowNumber = response.Values
-                    // Skip header row
-                    .Skip(1)
-                    // Parse the keys
-                    .Select((rowValues, rowIndex) =>
-                        (key: int.Parse((string)rowValues[0]), index: rowIndex)
-                    )
-                    .Where(row => row.key == eventKey)
-                    // Extract row number, plus 2 to correct for two this:
-                    // These lists are 0 indexed, but Sheets index from 1
-                    // Correct for skipping row 1, the header
-                    .Select(row => row.index + 2)
-                    .Cast<int?>()
-                    .FirstOrDefault();
+                    .Skip(1)  // Skip header row
+                    .Select((values, index) => (values, index))
+                    .First(row => int.Parse((string)row.values[0]) == eventKey);
 
-                if (rowNumber == null)
-                {
-                    throw new EventNotFoundException($"Event key {eventKey} not recognised");
-                }
-
-                return rowNumber.Value;
+                // Extract row number, plus 2 to correct for two this:
+                // These lists are 0 indexed, but Sheets index from 1
+                // Correct for skipping row 1, the header
+                return rowNumber.index + 2;
+            }
+            catch (InvalidOperationException e)
+            {
+                throw new EventNotFoundException($"Event key {eventKey} not recognised");
             }
             catch (GoogleApiException exception)
             {
