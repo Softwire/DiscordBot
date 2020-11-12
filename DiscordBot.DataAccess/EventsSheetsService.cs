@@ -22,6 +22,7 @@ namespace DiscordBot.DataAccess
             string? name = null,
             DateTime? time = null
         );
+        Task RemoveEventAsync(int key);
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
