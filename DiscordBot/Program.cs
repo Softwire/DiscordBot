@@ -29,7 +29,6 @@ namespace DiscordBot
             builder.AddInstance<IEventsSheetsService>(new EventsSheetsService());
             var dependencies = builder.Build();
             
-
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
                 StringPrefix = "?",
