@@ -134,7 +134,6 @@ namespace DiscordBot.Commands
                 await context.RespondAsync($"{context.Member.Mention} - operation stopped: {exception.Message}");
                 return null;
             }
-
         }
 
         private static bool IsValidResponse(DiscordMessage response, CommandContext context, string[]? validStrings)

@@ -25,13 +25,10 @@ namespace DiscordBot
                 LogLevel = LogLevel.Debug
             });
 
-            DependencyCollection dependencies;
-
-            using (var builder = new DependencyCollectionBuilder())
-            {
-                builder.AddInstance<IEventsSheetsService>(new EventsSheetsService());
-                dependencies = builder.Build();
-            }
+            using var builder = new DependencyCollectionBuilder();
+            builder.AddInstance<IEventsSheetsService>(new EventsSheetsService());
+            var dependencies = builder.Build();
+            
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
@@ -41,7 +38,7 @@ namespace DiscordBot
 
             commands.RegisterCommands<EventCommands>();
 
-            var interactivity = discord.UseInteractivity(new InteractivityConfiguration());
+            discord.UseInteractivity(new InteractivityConfiguration());
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
