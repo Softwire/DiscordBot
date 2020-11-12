@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DiscordBot.Commands;
+using DiscordBot.DataAccess;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Interactivity;
@@ -24,14 +25,19 @@ namespace DiscordBot
                 LogLevel = LogLevel.Debug
             });
 
+            using var builder = new DependencyCollectionBuilder();
+            builder.AddInstance<IEventsSheetsService>(new EventsSheetsService());
+            var dependencies = builder.Build();
+            
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
-                StringPrefix = "?"
+                StringPrefix = "?",
+                Dependencies = dependencies
             });
 
             commands.RegisterCommands<EventCommands>();
 
-            var interactivity = discord.UseInteractivity(new InteractivityConfiguration());
+            discord.UseInteractivity(new InteractivityConfiguration());
 
             await discord.ConnectAsync();
             await Task.Delay(-1);

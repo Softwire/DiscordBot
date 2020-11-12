@@ -12,4 +12,8 @@
     <PackageReference Include="DSharpPlus.Interactivity" Version="3.2.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DiscordBot.DataAccess\DiscordBot.DataAccess.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,4 +1,4 @@
-﻿namespace DiscordBot.Models
+﻿namespace DiscordBot.DataAccess.Models
 {
     public class Signup
     {

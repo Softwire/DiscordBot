@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 
-namespace DiscordBot.Models
+namespace DiscordBot.DataAccess.Models
 {
     public class DiscordEvent
     {
