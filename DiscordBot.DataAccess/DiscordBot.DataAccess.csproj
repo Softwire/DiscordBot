@@ -1,15 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.49.0.2111" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\DiscordBot\DiscordBot.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="credentials.json">

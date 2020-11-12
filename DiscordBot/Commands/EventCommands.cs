@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using DiscordBot.DataAccess;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -73,6 +74,10 @@ namespace DiscordBot.Commands
             {
                 return;
             }
+
+            var eventsSheetService = context.Dependencies.GetDependency<IEventsSheetsService>();
+
+            await eventsSheetService.AddEventAsync(eventName, eventDescription, eventTime.Value.DateTime);
 
             var embed = new DiscordEmbedBuilder
             {

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using DiscordBot.Commands;
+using DiscordBot.DataAccess;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Interactivity;
@@ -24,9 +25,18 @@ namespace DiscordBot
                 LogLevel = LogLevel.Debug
             });
 
+            DependencyCollection dependencies;
+
+            using (var builder = new DependencyCollectionBuilder())
+            {
+                builder.AddInstance<IEventsSheetsService>(new EventsSheetsService());
+                dependencies = builder.Build();
+            }
+
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
-                StringPrefix = "?"
+                StringPrefix = "?",
+                Dependencies = dependencies
             });
 
             commands.RegisterCommands<EventCommands>();
