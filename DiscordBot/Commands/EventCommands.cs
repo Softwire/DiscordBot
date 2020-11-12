@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.DataAccess;
+using DiscordBot.DataAccess.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -16,6 +17,14 @@ namespace DiscordBot.Commands
             "create",
             "rm",
             "edit",
+            "stop"
+        };
+        private static readonly string[] EventFields =
+        {
+            "name",
+            "description",
+            "time",
+            "save",
             "stop"
         };
 
@@ -47,7 +56,7 @@ namespace DiscordBot.Commands
                     await context.RespondAsync("Not implemented yet!");
                     break;
                 case "edit":
-                    await context.RespondAsync("Not implemented yet!");
+                    await EditEvent(context, interactivity);
                     break;
             }
         }
@@ -90,6 +99,117 @@ namespace DiscordBot.Commands
             await context.RespondAsync(embed: embed);
         }
 
+        public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
+        {
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key?");
+            var eventKey = await GetUserIntResponse(context, interactivity);
+            if (eventKey == null)
+            {
+                return;
+            }
+
+            var embed = await GetEventEmbed(context, eventKey.Value);
+            if (embed == null)
+            {
+                return;
+            }
+
+            await EditEventFields(context, interactivity, eventKey.Value, embed);
+        }
+
+        private static async Task EditEventFields(
+            CommandContext context,
+            InteractivityModule interactivity,
+            int eventKey,
+            DiscordEmbedBuilder embed)
+        {
+            string? newName = null;
+            string? newDescription = null;
+            DateTimeOffset? newTime = null;
+
+            while (true)
+            {
+                await context.RespondAsync($"{context.Member.Mention}", embed: embed);
+                await context.RespondAsync(
+                    $"{context.Member.Mention} - what field do you want to edit? (``name``, ``description``, ``time``)\n" +
+                    "``save`` to save changes.");
+                var editField = await GetUserResponse(context, interactivity, EventFields);
+                if (editField == null)
+                {
+                    return;
+                }
+
+                switch (editField)
+                {
+                    case "name":
+                        await context.RespondAsync($"{context.Member.Mention} - enter the new event name.");
+                        newName = await GetUserResponse(context, interactivity);
+                        if (newName == null)
+                        {
+                            return;
+                        }
+
+                        embed.Title = newName;
+                        break;
+                    case "description":
+                        await context.RespondAsync($"{context.Member.Mention} - enter the new description.");
+                        newDescription = await GetUserResponse(context, interactivity);
+                        if (newDescription == null)
+                        {
+                            return;
+                        }
+
+                        embed.Description = newDescription;
+                        break;
+                    case "time":
+                        await context.RespondAsync($"{context.Member.Mention} - enter the new event time.");
+                        newTime = await GetUserTimeResponse(context, interactivity);
+                        if (newTime == null)
+                        {
+                            return;
+                        }
+
+                        embed.Timestamp = newTime.Value.DateTime;
+                        break;
+                    case "save":
+                        try
+                        {
+                            var eventsSheetService = context.Dependencies.GetDependency<IEventsSheetsService>();
+                            await eventsSheetService.EditEventAsync(eventKey, newDescription, newName, newTime?.DateTime);
+                        }
+                        catch (EventNotFoundException)
+                        {
+                            await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
+                        }
+
+                        await context.RespondAsync($"{context.Member.Mention} - changes saved!");
+                        return;
+                }
+            }
+        }
+
+        private static async Task<DiscordEmbedBuilder?> GetEventEmbed(CommandContext context, int eventKey)
+        {
+            var eventsSheetService = context.Dependencies.GetDependency<IEventsSheetsService>();
+            
+            try
+            {
+                var discordEvent = await eventsSheetService.GetEventAsync(eventKey);
+
+                return new DiscordEmbedBuilder
+                {
+                    Title = discordEvent.Name,
+                    Description = discordEvent.Description,
+                    Timestamp = new DateTimeOffset(discordEvent.Time)
+                };
+            }
+            catch (EventNotFoundException)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped: event doesn't exist.");
+                return null;
+            }
+        }
+
         private static async Task<string?> GetUserResponse(
             CommandContext context,
             InteractivityModule interactivity,
@@ -128,6 +248,28 @@ namespace DiscordBot.Commands
             try
             {
                 return DateTimeOffset.Parse(response);
+            }
+            catch (FormatException exception)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped: {exception.Message}");
+                return null;
+            }
+        }
+
+        private static async Task<int?> GetUserIntResponse(
+            CommandContext context,
+            InteractivityModule interactivity)
+        {
+            var response = await GetUserResponse(context, interactivity);
+
+            if (response == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                return int.Parse(response);
             }
             catch (FormatException exception)
             {
