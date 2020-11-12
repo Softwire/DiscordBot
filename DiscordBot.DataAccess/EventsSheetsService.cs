@@ -16,7 +16,6 @@ namespace DiscordBot.DataAccess
     public interface IEventsSheetsService
     {
         Task AddEventAsync(string name, string description, DateTime time);
-        Task EditEventAsync(int key, string? description = null, string? name = null, DateTime? time = null);
         Task EditEventAsync(
             int eventKey,
             string? description = null,
@@ -36,6 +35,12 @@ namespace DiscordBot.DataAccess
 
         private readonly SheetsService sheetsService;
         private int largestKey;
+
+        private const string KeyColumn = "A";
+        private const string NameColumn = "B";
+        private const string DescriptionColumn = "C";
+        private const string TimeColumn = "D";
+        private const string LocationColumn = "E";
 
         public EventsSheetsService()
         {
@@ -114,7 +119,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Append(
                 newRow,
                 spreadsheetId,
-                "A:E"
+                $"{KeyColumn}:{LocationColumn}"
             );
             request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
 
@@ -134,17 +139,20 @@ namespace DiscordBot.DataAccess
 
             if (name != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!B{rowNumber}", name));
+                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumn}{rowNumber}", name));
             }
 
             if (description != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!C{rowNumber}", description));
+                data.Add(MakeCellUpdate($"EventsMetadata!{DescriptionColumn}{rowNumber}", description));
             }
 
             if (time != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!D{rowNumber}", time.Value.ToString("s")));
+                data.Add(MakeCellUpdate(
+                    $"EventsMetadata!{TimeColumn}{rowNumber}",
+                    time.Value.ToString("s")
+                ));
             }
 
             if (!data.Any())
@@ -193,7 +201,10 @@ namespace DiscordBot.DataAccess
         {
             try
             {
-                var request = sheetsService.Spreadsheets.Values.Get(spreadsheetId, "EventsMetadata!A:A");
+                var request = sheetsService.Spreadsheets.Values.Get(
+                    spreadsheetId,
+                    $"EventsMetadata!{KeyColumn}:{KeyColumn}"
+                );
                 var response = request.Execute();
 
                 if (response == null || response.Values.Count < 1)
@@ -222,7 +233,10 @@ namespace DiscordBot.DataAccess
         {
             try
             {
-                var request = sheetsService.Spreadsheets.Values.Get(spreadsheetId, "EventsMetadata!A:A");
+                var request = sheetsService.Spreadsheets.Values.Get(
+                    spreadsheetId,
+                    $"EventsMetadata!{KeyColumn}:{KeyColumn}"
+                );
                 var response = await request.ExecuteAsync();
 
                 if (response == null || response.Values.Count < 2)
@@ -231,11 +245,16 @@ namespace DiscordBot.DataAccess
                 }
 
                 var rowNumber = response.Values
+                    // Skip header row
                     .Skip(1)
+                    // Parse the keys
                     .Select((rowValues, rowIndex) =>
                         (key: int.Parse((string)rowValues[0]), index: rowIndex)
                     )
                     .Where(row => row.key == eventKey)
+                    // Extract row number, plus 2 to correct for two this:
+                    // These lists are 0 indexed, but Sheets index from 1
+                    // Correct for skipping row 1, the header
                     .Select(row => row.index + 2)
                     .Cast<int?>()
                     .FirstOrDefault();
