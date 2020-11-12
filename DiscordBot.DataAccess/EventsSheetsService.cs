@@ -186,15 +186,49 @@ namespace DiscordBot.DataAccess
 
         public async Task<DiscordEvent> GetEventAsync(int eventKey)
         {
-             return new DiscordEvent("Christmas Day", "Christmas!", eventKey, new DateTime(2020, 12, 25));
+            var discordEvents = await ListEventsAsync();
+
+            var result = discordEvents.FirstOrDefault(discordEvent => discordEvent.Key == eventKey);
+            if (result == null)
+            {
+                throw new EventNotFoundException($"Event key {eventKey} not recognised");
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
         {
-            return new[]
+            try
             {
-                new DiscordEvent("Christmas Day", "Christmas!", 1, new DateTime(2020, 12, 25))
-            };
+                var request = sheetsService.Spreadsheets.Values.Get(
+                    spreadsheetId,
+                    $"EventsMetadata!{KeyColumnLetter}:{LocationColumnLetter}"
+                );
+                request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+                var response = await request.ExecuteAsync();
+
+                if (response == null || response.Values.Count < 1)
+                {
+                    throw new EventsSheetsInitialisationException("Metadata sheet is empty");
+                }
+
+                return response.Values
+                    .Skip(1) // Skip header row
+                    .Select(row => new DiscordEvent(
+                        (string) row[NameColumnIndex],
+                        (string) row[DescriptionIndex],
+                        int.Parse((string) row[KeyColumnIndex]),
+                        (DateTime) row[TimeColumnIndex]
+                ));
+            }
+            catch (GoogleApiException exception)
+            {
+                throw new EventsSheetsInitialisationException(
+                    $"Events Sheets Service couldn't initialise",
+                    exception
+                );
+            }
         }
 
         private static ServiceAccountCredential GetCredential(string path = "credentials.json")
