@@ -365,3 +365,6 @@ obj/
 # Common node modules locations
 /node_modules
 /wwwroot/node_modules
+
+# Google APIs Credentials file
+Discord.DataAccess/**credentials.json
