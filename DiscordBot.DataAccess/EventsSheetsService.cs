@@ -65,47 +65,6 @@ namespace DiscordBot.DataAccess
             largestKey = GetLargestKey();
         }
 
-        public async Task ReadColumns()
-        {
-            var range = "A2:B27";
-            var request =
-                sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
-
-            var response = await request.ExecuteAsync();
-            var values = response.Values;
-            if (values == null || values.Count <= 0)
-            {
-                Console.WriteLine("No data found.");
-                return;
-            }
-
-            Console.WriteLine("Alpha, Numeric");
-            foreach (var row in values)
-            {
-                Console.WriteLine($"{row[0]}, {row[1]}");
-            }
-        }
-
-        public async Task WriteRow()
-        {
-            var valueRange = new ValueRange
-            {
-                Values = new List<IList<object>>
-                {
-                    new List<object>
-                    {
-                        "Test write:",
-                        1
-                    }
-                },
-                Range = "A30:B30"
-            };
-            var request = sheetsService.Spreadsheets.Values.Update(valueRange, spreadsheetId, "A30:B30");
-            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
-
-            await request.ExecuteAsync();
-        }
-
         public async Task AddEventAsync(string name, string description, DateTime time)
         {
             // Allocate new key
