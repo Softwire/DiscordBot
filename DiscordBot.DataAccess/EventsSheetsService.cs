@@ -22,7 +22,7 @@ namespace DiscordBot.DataAccess
             string? name = null,
             DateTime? time = null
         );
-        Task RemoveEventAsync(int key);
+        Task RemoveEventAsync(int eventKey);
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
@@ -35,8 +35,10 @@ namespace DiscordBot.DataAccess
         private static readonly string spreadsheetId = "";
 
         private readonly SheetsService sheetsService;
+        private readonly int metadataSheetId;
         private int largestKey;
 
+        private const string MetadataSheetName = "EventsMetadata";
         private readonly SheetsColumn KeyColumn = new SheetsColumn(0);
         private readonly SheetsColumn NameColumn = new SheetsColumn(1);
         private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
@@ -54,6 +56,7 @@ namespace DiscordBot.DataAccess
             });
 
             largestKey = GetLargestKey();
+            metadataSheetId = GetMetadataSheetId();
         }
 
         public async Task AddEventAsync(string name, string description, DateTime time)
@@ -99,18 +102,18 @@ namespace DiscordBot.DataAccess
 
             if (name != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumn.Letter}{rowNumber}", name));
+                data.Add(MakeCellUpdate($"{MetadataSheetName}!{NameColumn.Letter}{rowNumber}", name));
             }
 
             if (description != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!{DescriptionColumn}{rowNumber}", description));
+                data.Add(MakeCellUpdate($"{MetadataSheetName}!{DescriptionColumn}{rowNumber}", description));
             }
 
             if (time != null)
             {
                 data.Add(MakeCellUpdate(
-                    $"EventsMetadata!{TimeColumn.Letter}{rowNumber}",
+                    $"{MetadataSheetName}!{TimeColumn.Letter}{rowNumber}",
                     time.Value.ToString("s")
                 ));
             }
@@ -130,8 +133,32 @@ namespace DiscordBot.DataAccess
             await request.ExecuteAsync();
         }
 
-        public async Task RemoveEventAsync(int key)
+        public async Task RemoveEventAsync(int eventKey)
         {
+            var rowNumber = await GetEventRowNumber(eventKey);
+
+            var requestParameters = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = new[]
+                {
+                    new Request()
+                    {
+                        DeleteDimension = new DeleteDimensionRequest()
+                        {
+                            Range = new DimensionRange()
+                            {
+                                SheetId = metadataSheetId,
+                                Dimension = "ROWS",
+                                StartIndex = rowNumber - 1,
+                                EndIndex = rowNumber
+                            }
+                        }
+                    }
+                }
+            };
+
+            var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
+            await request.ExecuteAsync();
         }
 
         public async Task<DiscordEvent> GetEventAsync(int eventKey)
@@ -153,7 +180,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn.Letter}:{LocationColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{LocationColumn.Letter}"
                 );
                 request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
                 var response = await request.ExecuteAsync();
@@ -198,7 +225,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = request.Execute();
 
@@ -224,13 +251,26 @@ namespace DiscordBot.DataAccess
             }
         }
 
+        private int GetMetadataSheetId()
+        {
+            var sheets = sheetsService.Spreadsheets.Get(spreadsheetId).Execute().Sheets;
+            var metadataSheet = sheets.FirstOrDefault(sheet => sheet.Properties.Title == MetadataSheetName);
+
+            if (metadataSheet?.Properties.SheetId == null)
+            {
+                throw new EventsSheetsInitialisationException("Could not find metadata sheet");
+            }
+
+            return metadataSheet.Properties.SheetId.Value;
+        }
+
         private async Task<int> GetEventRowNumber(int eventKey)
         {
             try
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = await request.ExecuteAsync();
 
