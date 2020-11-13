@@ -88,7 +88,7 @@ namespace DiscordBot.Commands
 
             await eventsSheetService.AddEventAsync(eventName, eventDescription, eventTime.Value.DateTime);
 
-            var embed = new DiscordEmbedBuilder
+            var discordEmbed = new DiscordEmbedBuilder
             {
                 Title = eventName,
                 Description = eventDescription,
@@ -96,7 +96,7 @@ namespace DiscordBot.Commands
                 Timestamp = eventTime
             };
 
-            await context.RespondAsync(embed: embed);
+            await context.RespondAsync(embed: discordEmbed);
         }
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
@@ -108,20 +108,20 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var embed = await GetEventEmbed(context, eventKey.Value);
-            if (embed == null)
+            var discordEmbed = await GetEventEmbed(context, eventKey.Value);
+            if (discordEmbed == null)
             {
                 return;
             }
 
-            await EditEventFields(context, interactivity, eventKey.Value, embed);
+            await EditEventFields(context, interactivity, eventKey.Value, discordEmbed);
         }
 
         private static async Task EditEventFields(
             CommandContext context,
             InteractivityModule interactivity,
             int eventKey,
-            DiscordEmbedBuilder embed)
+            DiscordEmbedBuilder discordEmbed)
         {
             string? newName = null;
             string? newDescription = null;
@@ -129,7 +129,7 @@ namespace DiscordBot.Commands
 
             while (true)
             {
-                await context.RespondAsync($"{context.Member.Mention}", embed: embed);
+                await context.RespondAsync($"{context.Member.Mention}", embed: discordEmbed);
                 await context.RespondAsync(
                     $"{context.Member.Mention} - what field do you want to edit? (``name``, ``description``, ``time``)\n" +
                     "``save`` to save changes.");
@@ -149,7 +149,7 @@ namespace DiscordBot.Commands
                             return;
                         }
 
-                        embed.Title = newName;
+                        discordEmbed.Title = newName;
                         break;
                     case "description":
                         await context.RespondAsync($"{context.Member.Mention} - enter the new description.");
@@ -159,7 +159,7 @@ namespace DiscordBot.Commands
                             return;
                         }
 
-                        embed.Description = newDescription;
+                        discordEmbed.Description = newDescription;
                         break;
                     case "time":
                         await context.RespondAsync($"{context.Member.Mention} - enter the new event time.");
@@ -169,7 +169,7 @@ namespace DiscordBot.Commands
                             return;
                         }
 
-                        embed.Timestamp = newTime.Value.DateTime;
+                        discordEmbed.Timestamp = newTime.Value.DateTime;
                         break;
                     case "save":
                         try
