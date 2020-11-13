@@ -37,7 +37,7 @@ namespace DiscordBot.DataAccess
         private readonly SheetsService sheetsService;
         private int largestKey;
 
-        private readonly SheetsColumn KeyColumn = new SheetsColumn( 0);
+        private readonly SheetsColumn KeyColumn = new SheetsColumn(0);
         private readonly SheetsColumn NameColumn = new SheetsColumn(1);
         private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
         private readonly SheetsColumn TimeColumn = new SheetsColumn(3);
