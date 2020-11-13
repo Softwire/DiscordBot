@@ -14,6 +14,7 @@ namespace DiscordBot.Commands
         private static readonly string[] EventOperations =
         {
             "create",
+            "remove",
             "rm",
             "edit",
             "stop"
@@ -25,6 +26,11 @@ namespace DiscordBot.Commands
             "time",
             "stop"
         };
+        private static readonly string[] ConfirmationResponses =
+        {
+            "yes",
+            "no"
+        };
 
         [Command("event")]
         [Description("Initiates the wizard for event-related actions")]
@@ -35,7 +41,7 @@ namespace DiscordBot.Commands
             await context.RespondAsync(
                 $"{context.Member.Mention} - choose one of the actions below or answer ``stop`` to cancel. (time out in 30s)\n" +
                 "``create`` - create new event.\n" +
-                "``rm`` - delete event.\n" +
+                "``remove`` - delete event.\n" +
                 "``edit`` - edit event.\n"
             );
 
@@ -50,8 +56,9 @@ namespace DiscordBot.Commands
                 case "create":
                     await CreateEvent(context, interactivity);
                     break;
+                case "remove":
                 case "rm":
-                    await context.RespondAsync("Not implemented yet!");
+                    await RemoveEvent(context, interactivity);
                     break;
                 case "edit":
                     await EditEvent(context, interactivity);
@@ -95,6 +102,45 @@ namespace DiscordBot.Commands
             };
 
             await context.RespondAsync(embed: eventEmbed);
+        }
+
+        public async Task RemoveEvent(CommandContext context, InteractivityModule interactivity)
+        {
+            await context.RespondAsync($"{context.Member.Mention} - which event do you want to delete");
+            var eventKey = await GetUserIntResponse(context, interactivity);
+            if (eventKey == null)
+            {
+                return;
+            }
+
+            var discordEmbed = await GetEventEmbed(context, eventKey.Value);
+            if (discordEmbed == null)
+            {
+                return;
+            }
+
+            var message = await context.RespondAsync(
+                $"{context.Member.Mention} - is this the event you want to delete? (``yes``/``no``)",
+                embed: discordEmbed);
+            var confirmationResponse = await GetUserConfirmation(context, interactivity);
+            if (confirmationResponse == null)
+            {
+                return;
+            }
+
+            if (confirmationResponse.Value)
+            {
+                try
+                {
+                    await context.Dependencies.GetDependency<IEventsSheetsService>()
+                        .RemoveEventAsync(eventKey.Value);
+                    await context.RespondAsync($"{context.Member.Mention} - poof! It's gone.");
+                }
+                catch (EventNotFoundException)
+                {
+                    await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
+                }
+            }
         }
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
@@ -233,6 +279,29 @@ namespace DiscordBot.Commands
             }
 
             return response;
+        }
+
+        private static async Task<bool?> GetUserConfirmation(
+            CommandContext context,
+            InteractivityModule interactivity)
+        {
+            var response = interactivity.WaitForMessageAsync(
+                message =>
+                    IsValidResponse(message, context, ConfirmationResponses),
+                TimeSpan.FromSeconds(30)
+            ).Result?.Message.Content;
+
+            switch (response)
+            {
+                case "stop":
+                    await context.RespondAsync($"{context.User.Mention} - operation stopped.");
+                    return null;
+                case null:
+                    await context.RespondAsync($"{context.User.Mention} - timed out.");
+                    break;
+            }
+
+            return response == "yes";
         }
 
         private static async Task<DateTimeOffset?> GetUserTimeResponse(
