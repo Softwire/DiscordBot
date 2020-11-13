@@ -24,7 +24,6 @@ namespace DiscordBot.Commands
             "name",
             "description",
             "time",
-            "save",
             "stop"
         };
 
