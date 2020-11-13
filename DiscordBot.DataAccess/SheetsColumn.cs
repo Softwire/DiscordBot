@@ -2,7 +2,7 @@
 
 namespace DiscordBot.DataAccess
 {
-    internal readonly struct SheetsColumn
+    internal class SheetsColumn
     {
         public int Index { get; }
         public char Letter { get; }
