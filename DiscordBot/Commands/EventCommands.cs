@@ -114,78 +114,75 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await EditEventFields(context, interactivity, eventKey.Value, discordEmbed);
+            await context.RespondAsync($"{context.Member.Mention}", embed: discordEmbed);
+            await context.RespondAsync(
+                $"{context.Member.Mention} - what field do you want to edit? (``name``, ``description``, ``time``)\n" +
+                "``save`` to save changes.");
+            var editField = await GetUserResponse(context, interactivity, EventFields);
+            if (editField == null)
+            {
+                return;
+            }
+
+            await EditEventFields(context, interactivity, eventKey.Value, editField, discordEmbed);
         }
 
         private static async Task EditEventFields(
             CommandContext context,
             InteractivityModule interactivity,
             int eventKey,
+            string editField,
             DiscordEmbedBuilder discordEmbed)
         {
             string? newName = null;
             string? newDescription = null;
             DateTimeOffset? newTime = null;
 
-            while (true)
+            switch (editField)
             {
-                await context.RespondAsync($"{context.Member.Mention}", embed: discordEmbed);
-                await context.RespondAsync(
-                    $"{context.Member.Mention} - what field do you want to edit? (``name``, ``description``, ``time``)\n" +
-                    "``save`` to save changes.");
-                var editField = await GetUserResponse(context, interactivity, EventFields);
-                if (editField == null)
-                {
-                    return;
-                }
-
-                switch (editField)
-                {
-                    case "name":
-                        await context.RespondAsync($"{context.Member.Mention} - enter the new event name.");
-                        newName = await GetUserResponse(context, interactivity);
-                        if (newName == null)
-                        {
-                            return;
-                        }
-
-                        discordEmbed.Title = newName;
-                        break;
-                    case "description":
-                        await context.RespondAsync($"{context.Member.Mention} - enter the new description.");
-                        newDescription = await GetUserResponse(context, interactivity);
-                        if (newDescription == null)
-                        {
-                            return;
-                        }
-
-                        discordEmbed.Description = newDescription;
-                        break;
-                    case "time":
-                        await context.RespondAsync($"{context.Member.Mention} - enter the new event time.");
-                        newTime = await GetUserTimeResponse(context, interactivity);
-                        if (newTime == null)
-                        {
-                            return;
-                        }
-
-                        discordEmbed.Timestamp = newTime.Value.DateTime;
-                        break;
-                    case "save":
-                        try
-                        {
-                            var eventsSheetService = context.Dependencies.GetDependency<IEventsSheetsService>();
-                            await eventsSheetService.EditEventAsync(eventKey, newDescription, newName, newTime?.DateTime);
-                        }
-                        catch (EventNotFoundException)
-                        {
-                            await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
-                        }
-
-                        await context.RespondAsync($"{context.Member.Mention} - changes saved!");
+                case "name":
+                    await context.RespondAsync($"{context.Member.Mention} - enter the new event name.");
+                    newName = await GetUserResponse(context, interactivity);
+                    if (newName == null)
+                    {
                         return;
-                }
+                    }
+
+                    discordEmbed.Title = newName;
+                    break;
+                case "description":
+                    await context.RespondAsync($"{context.Member.Mention} - enter the new description.");
+                    newDescription = await GetUserResponse(context, interactivity);
+                    if (newDescription == null)
+                    {
+                        return;
+                    }
+
+                    discordEmbed.Description = newDescription;
+                    break;
+                case "time":
+                    await context.RespondAsync($"{context.Member.Mention} - enter the new event time.");
+                    newTime = await GetUserTimeResponse(context, interactivity);
+                    if (newTime == null)
+                    {
+                        return;
+                    }
+
+                    discordEmbed.Timestamp = newTime.Value.DateTime;
+                    break;
             }
+
+            try
+            {
+                var eventsSheetService = context.Dependencies.GetDependency<IEventsSheetsService>();
+                await eventsSheetService.EditEventAsync(eventKey, newDescription, newName, newTime?.DateTime);
+            }
+            catch (EventNotFoundException)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
+            }
+
+            await context.RespondAsync($"{context.Member.Mention} - changes saved!", embed: discordEmbed);
         }
 
         private static async Task<DiscordEmbedBuilder?> GetEventEmbed(CommandContext context, int eventKey)
