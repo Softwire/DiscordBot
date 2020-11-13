@@ -18,12 +18,10 @@ namespace DiscordBot.DataAccess.Models
             return Emoji == other.Emoji && ResponseName == other.ResponseName;
         }
 
-        public override bool Equals(object? obj)
+        public override bool Equals(object? other)
         {
-            if (ReferenceEquals(null, obj)) return false;
-            if (ReferenceEquals(this, obj)) return true;
-            if (obj.GetType() != this.GetType()) return false;
-            return Equals((EventResponse) obj);
+            if (other == null || other.GetType() != GetType()) return false;
+            return Equals((EventResponse) other);
         }
 
         public override int GetHashCode()
