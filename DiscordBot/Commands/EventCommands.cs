@@ -15,6 +15,7 @@ namespace DiscordBot.Commands
         {
             "create",
             "remove",
+            "show",
             "edit",
             "stop"
         };
@@ -41,6 +42,7 @@ namespace DiscordBot.Commands
                 $"{context.Member.Mention} - choose one of the actions below or answer ``stop`` to cancel. (time out in 30s)\n" +
                 "``create`` - create new event.\n" +
                 "``remove`` - delete event.\n" +
+                "``show`` - show event details.\n" +
                 "``edit`` - edit event.\n"
             );
 
@@ -57,6 +59,9 @@ namespace DiscordBot.Commands
                     break;
                 case "remove":
                     await RemoveEvent(context, interactivity);
+                    break;
+                case "show":
+                    await ShowEvent(context, interactivity);
                     break;
                 case "edit":
                     await EditEvent(context, interactivity);
@@ -139,6 +144,24 @@ namespace DiscordBot.Commands
                     await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
                 }
             }
+        }
+
+        public async Task ShowEvent(CommandContext context, InteractivityModule interactivity)
+        {
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key?");
+            var eventKey = await GetUserIntResponse(context, interactivity);
+            if (eventKey == null)
+            {
+                return;
+            }
+            
+            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            if (eventEmbed == null)
+            {
+                return;
+            }
+            
+            await context.RespondAsync($"{context.Member.Mention} - here is the event", embed: eventEmbed);
         }
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
