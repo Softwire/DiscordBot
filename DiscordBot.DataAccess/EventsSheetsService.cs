@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Google;
@@ -43,7 +42,7 @@ namespace DiscordBot.DataAccess
     {
         private static readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
         private static readonly string applicationName = "Softwire Discord Bot";
-        private static readonly string spreadsheetId = "";
+        private static readonly string? spreadsheetId = SheetsEnvironmentVariables.SheetId;
 
         private readonly SheetsService sheetsService;
         private readonly int metadataSheetId;
@@ -258,14 +257,21 @@ namespace DiscordBot.DataAccess
         }
 #pragma warning restore 1998
 
-        private static ServiceAccountCredential GetCredential(string path = "credentials.json")
+        private static ServiceAccountCredential GetCredential()
         {
-            using var stream =
-                new FileStream(path, FileMode.Open, FileAccess.Read);
+            var clientEmail = SheetsEnvironmentVariables.ClientEmail;
+            var privateKey = SheetsEnvironmentVariables.PrivateKey;
 
-            return GoogleCredential.FromStream(stream)
-                       .CreateScoped(scopes)
-                       .UnderlyingCredential as ServiceAccountCredential
+            var credentialInitializer = new ServiceAccountCredential.Initializer(clientEmail)
+            {
+                ProjectId = SheetsEnvironmentVariables.ProjectId,
+                KeyId = SheetsEnvironmentVariables.PrivateKeyId,
+                Scopes = scopes
+            };
+
+            var credentials = new ServiceAccountCredential(credentialInitializer.FromPrivateKey(privateKey));
+
+            return credentials
                    ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
         }
 

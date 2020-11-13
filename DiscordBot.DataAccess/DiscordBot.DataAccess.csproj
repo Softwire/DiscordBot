@@ -8,9 +8,6 @@
     <PackageReference Include="Google.Apis.Sheets.v4" Version="1.49.0.2111" />
   </ItemGroup>
   <ItemGroup>
-    <None Update="credentials.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="example_credentials.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
