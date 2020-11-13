@@ -37,20 +37,11 @@ namespace DiscordBot.DataAccess
         private readonly SheetsService sheetsService;
         private int largestKey;
 
-        private const string KeyColumnLetter = "A";
-        private const int KeyColumnIndex = 0;
-
-        private const string NameColumnLetter = "B";
-        private const int NameColumnIndex = 1;
-
-        private const string DescriptionColumn = "C";
-        private const int DescriptionIndex = 2;
-
-        private const string TimeColumnLetter = "D";
-        private const int TimeColumnIndex = 3;
-
-        private const string LocationColumnLetter = "E";
-        private const int LocationColumnIndex = 4;
+        private readonly SheetsColumn KeyColumn = new SheetsColumn( 0);
+        private readonly SheetsColumn NameColumn = new SheetsColumn(1);
+        private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
+        private readonly SheetsColumn TimeColumn = new SheetsColumn(3);
+        private readonly SheetsColumn LocationColumn = new SheetsColumn(4);
 
         public EventsSheetsService()
         {
@@ -88,7 +79,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Append(
                 newRow,
                 spreadsheetId,
-                $"{KeyColumnLetter}:{LocationColumnLetter}"
+                $"{KeyColumn.Letter}:{LocationColumn.Letter}"
             );
             request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
 
@@ -108,7 +99,7 @@ namespace DiscordBot.DataAccess
 
             if (name != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumnLetter}{rowNumber}", name));
+                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumn.Letter}{rowNumber}", name));
             }
 
             if (description != null)
@@ -119,7 +110,7 @@ namespace DiscordBot.DataAccess
             if (time != null)
             {
                 data.Add(MakeCellUpdate(
-                    $"EventsMetadata!{TimeColumnLetter}{rowNumber}",
+                    $"EventsMetadata!{TimeColumn.Letter}{rowNumber}",
                     time.Value.ToString("s")
                 ));
             }
@@ -162,7 +153,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumnLetter}:{LocationColumnLetter}"
+                    $"EventsMetadata!{KeyColumn.Letter}:{LocationColumn.Letter}"
                 );
                 request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
                 var response = await request.ExecuteAsync();
@@ -175,10 +166,10 @@ namespace DiscordBot.DataAccess
                 return response.Values
                     .Skip(1) // Skip header row
                     .Select(row => new DiscordEvent(
-                        (string) row[NameColumnIndex],
-                        (string) row[DescriptionIndex],
-                        int.Parse((string) row[KeyColumnIndex]),
-                        (DateTime) row[TimeColumnIndex]
+                        (string) row[NameColumn.Index],
+                        (string) row[DescriptionColumn.Index],
+                        int.Parse((string) row[KeyColumn.Index]),
+                        (DateTime) row[TimeColumn.Index]
                 ));
             }
             catch (GoogleApiException exception)
@@ -207,7 +198,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumnLetter}:{KeyColumnLetter}"
+                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = request.Execute();
 
@@ -222,7 +213,7 @@ namespace DiscordBot.DataAccess
                     return 0;
                 }
 
-                return int.Parse((string)response.Values.Skip(1).Last()[KeyColumnIndex]);
+                return int.Parse((string)response.Values.Skip(1).Last()[KeyColumn.Index]);
             }
             catch (GoogleApiException exception)
             {
@@ -239,7 +230,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumnLetter}:{KeyColumnLetter}"
+                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = await request.ExecuteAsync();
 
@@ -251,7 +242,7 @@ namespace DiscordBot.DataAccess
                 var rowNumber = response.Values
                     .Skip(1)  // Skip header row
                     .Select((values, index) => (values, index))
-                    .First(row => int.Parse((string)row.values[KeyColumnIndex]) == eventKey);
+                    .First(row => int.Parse((string)row.values[KeyColumn.Index]) == eventKey);
 
                 // Extract row number, plus 2 to correct for two this:
                 // These lists are 0 indexed, but Sheets index from 1
