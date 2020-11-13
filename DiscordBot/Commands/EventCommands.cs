@@ -124,10 +124,10 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await EditEventFields(context, interactivity, eventKey.Value, editField, discordEmbed);
+            await EditEventField(context, interactivity, eventKey.Value, editField, discordEmbed);
         }
 
-        private static async Task EditEventFields(
+        private static async Task EditEventField(
             CommandContext context,
             InteractivityModule interactivity,
             int eventKey,
