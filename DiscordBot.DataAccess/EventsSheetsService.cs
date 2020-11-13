@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Google;
@@ -32,7 +31,7 @@ namespace DiscordBot.DataAccess
     {
         private static readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
         private static readonly string applicationName = "Softwire Discord Bot";
-        private static readonly string spreadsheetId = "";
+        private static readonly string spreadsheetId = Environment.GetEnvironmentVariable("GOOGLE_SHEET_ID");
 
         private readonly SheetsService sheetsService;
         private readonly int metadataSheetId;
@@ -208,15 +207,21 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        private static ServiceAccountCredential GetCredential(string path = "credentials.json")
+        private static ServiceAccountCredential GetCredential()
         {
-            using var stream =
-                new FileStream(path, FileMode.Open, FileAccess.Read);
-
-            return GoogleCredential.FromStream(stream)
-                       .CreateScoped(scopes)
-                       .UnderlyingCredential as ServiceAccountCredential
-                   ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
+            var clientEmail = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_EMAIL");
+            var projectId = Environment.GetEnvironmentVariable("GOOGLE_PROJECT_ID");
+            var privateKeyId = Environment.GetEnvironmentVariable("GOOGLE_PRIVATE_KEY_ID");
+            var privateKey = Environment.GetEnvironmentVariable("GOOGLE_PRIVATE_KEY");
+            return new ServiceAccountCredential(
+                new ServiceAccountCredential.Initializer(clientEmail)
+                {
+                    ProjectId = projectId,
+                    KeyId = privateKeyId,
+                    Scopes = scopes
+                }.FromPrivateKey(privateKey)
+                ?? throw new EventsSheetsInitialisationException(
+                    "Credential maker returned null"));
         }
 
         private int GetLargestKey()
