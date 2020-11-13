@@ -31,7 +31,8 @@ namespace DiscordBot.DataAccess
     {
         private static readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
         private static readonly string applicationName = "Softwire Discord Bot";
-        private static readonly string spreadsheetId = Environment.GetEnvironmentVariable("GOOGLE_SHEET_ID");
+        private static readonly string? spreadsheetId =
+            Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.SheetId);
 
         private readonly SheetsService sheetsService;
         private readonly int metadataSheetId;
@@ -209,19 +210,22 @@ namespace DiscordBot.DataAccess
 
         private static ServiceAccountCredential GetCredential()
         {
-            var clientEmail = Environment.GetEnvironmentVariable("GOOGLE_CLIENT_EMAIL");
-            var projectId = Environment.GetEnvironmentVariable("GOOGLE_PROJECT_ID");
-            var privateKeyId = Environment.GetEnvironmentVariable("GOOGLE_PRIVATE_KEY_ID");
-            var privateKey = Environment.GetEnvironmentVariable("GOOGLE_PRIVATE_KEY");
-            return new ServiceAccountCredential(
-                new ServiceAccountCredential.Initializer(clientEmail)
-                {
-                    ProjectId = projectId,
-                    KeyId = privateKeyId,
-                    Scopes = scopes
-                }.FromPrivateKey(privateKey)
-                ?? throw new EventsSheetsInitialisationException(
-                    "Credential maker returned null"));
+            var clientEmail = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.ClientEmail);
+            var projectId = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.ProjectId);
+            var privateKeyId = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.PrivateKeyId);
+            var privateKey = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.PrivateKey);
+
+            var credentialInitializer = new ServiceAccountCredential.Initializer(clientEmail)
+            {
+                ProjectId = projectId,
+                KeyId = privateKeyId,
+                Scopes = scopes
+            };
+
+            var credentials = new ServiceAccountCredential(credentialInitializer.FromPrivateKey(privateKey));
+
+            return credentials
+                   ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
         }
 
         private int GetLargestKey()
