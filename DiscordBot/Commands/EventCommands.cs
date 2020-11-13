@@ -15,7 +15,6 @@ namespace DiscordBot.Commands
         {
             "create",
             "remove",
-            "rm",
             "edit",
             "stop"
         };
@@ -57,7 +56,6 @@ namespace DiscordBot.Commands
                     await CreateEvent(context, interactivity);
                     break;
                 case "remove":
-                case "rm":
                     await RemoveEvent(context, interactivity);
                     break;
                 case "edit":
