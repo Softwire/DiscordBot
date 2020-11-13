@@ -1,11 +1,19 @@
-﻿namespace DiscordBot.DataAccess
+﻿using System;
+
+namespace DiscordBot.DataAccess
 {
     internal static class SheetsEnvironmentVariables
     {
-        public const string SheetId = "GOOGLE_SHEET_ID";
-        public const string ClientEmail = "GOOGLE_CLIENT_EMAIL";
-        public const string ProjectId = "GOOGLE_PROJECT_ID";
-        public const string PrivateKeyId = "GOOGLE_PRIVATE_KEY_ID";
-        public const string PrivateKey = "GOOGLE_PRIVATE_KEY";
+        const string sheetIdVar = "GOOGLE_SHEET_ID";
+        const string clientEmailVar = "GOOGLE_CLIENT_EMAIL";
+        const string projectIdVar = "GOOGLE_PROJECT_ID";
+        const string privateKeyIdVar = "GOOGLE_PRIVATE_KEY_ID";
+        const string privateKeyVar = "GOOGLE_PRIVATE_KEY";
+
+        public static string? SheetId => Environment.GetEnvironmentVariable(sheetIdVar);
+        public static string? ClientEmail => Environment.GetEnvironmentVariable(clientEmailVar);
+        public static string? ProjectId => Environment.GetEnvironmentVariable(projectIdVar);
+        public static string? PrivateKeyId => Environment.GetEnvironmentVariable(privateKeyIdVar);
+        public static string? PrivateKey => Environment.GetEnvironmentVariable(privateKeyVar);
     }
 }

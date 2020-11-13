@@ -31,8 +31,7 @@ namespace DiscordBot.DataAccess
     {
         private static readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
         private static readonly string applicationName = "Softwire Discord Bot";
-        private static readonly string? spreadsheetId =
-            Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.SheetId);
+        private static readonly string? spreadsheetId = SheetsEnvironmentVariables.SheetId;
 
         private readonly SheetsService sheetsService;
         private readonly int metadataSheetId;
@@ -210,15 +209,13 @@ namespace DiscordBot.DataAccess
 
         private static ServiceAccountCredential GetCredential()
         {
-            var clientEmail = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.ClientEmail);
-            var projectId = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.ProjectId);
-            var privateKeyId = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.PrivateKeyId);
-            var privateKey = Environment.GetEnvironmentVariable(SheetsEnvironmentVariables.PrivateKey);
+            var clientEmail = SheetsEnvironmentVariables.ClientEmail;
+            var privateKey = SheetsEnvironmentVariables.PrivateKey;
 
             var credentialInitializer = new ServiceAccountCredential.Initializer(clientEmail)
             {
-                ProjectId = projectId,
-                KeyId = privateKeyId,
+                ProjectId = SheetsEnvironmentVariables.ProjectId,
+                KeyId = SheetsEnvironmentVariables.PrivateKeyId,
                 Scopes = scopes
             };
 
