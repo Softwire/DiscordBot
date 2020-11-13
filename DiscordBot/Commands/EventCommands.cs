@@ -164,7 +164,7 @@ namespace DiscordBot.Commands
                     }
 
                     eventEmbed.Timestamp = newTime.Value.DateTime;
-                    await TryEditEvent(context, eventKey, eventEmbed, newTime: newTime?.DateTime);
+                    await TryEditEvent(context, eventKey, eventEmbed, newTime: newTime.Value.DateTime);
                     break;
             }
         }
