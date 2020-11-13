@@ -32,8 +32,8 @@ namespace DiscordBot.DataAccess
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
 
-        Task AddResponseOfUser(int eventKey, ulong userId, string responseEmoji);
-        Task ClearResponsesOfUser(int eventKey, ulong userId);
+        Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji);
+        Task ClearResponsesForUser(int eventKey, ulong userId);
 
         Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUser(int eventId);
         Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponse(int eventId);
@@ -231,11 +231,11 @@ namespace DiscordBot.DataAccess
         }
 
 #pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
-        public async Task AddResponseOfUser(int eventKey, ulong userId, string responseEmoji)
+        public async Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji)
         {
         }
 
-        public async Task ClearResponsesOfUser(int eventKey, ulong userId)
+        public async Task ClearResponsesForUser(int eventKey, ulong userId)
         {
         }
 

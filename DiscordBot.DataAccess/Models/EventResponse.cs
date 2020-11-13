@@ -4,18 +4,18 @@ namespace DiscordBot.DataAccess.Models
 {
     public class EventResponse
     {
-        public string emoji { get; }
-        public string responseName { get; }
+        public string Emoji { get; }
+        public string ResponseName { get; }
 
         public EventResponse(string emoji, string responseName)
         {
-            this.emoji = emoji;
-            this.responseName = responseName;
+            Emoji = emoji;
+            ResponseName = responseName;
         }
 
         protected bool Equals(EventResponse other)
         {
-            return emoji == other.emoji && responseName == other.responseName;
+            return Emoji == other.Emoji && ResponseName == other.ResponseName;
         }
 
         public override bool Equals(object? obj)
@@ -28,7 +28,7 @@ namespace DiscordBot.DataAccess.Models
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(emoji, responseName);
+            return HashCode.Combine(Emoji, ResponseName);
         }
     }
 }
