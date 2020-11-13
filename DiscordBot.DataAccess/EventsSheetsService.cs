@@ -37,11 +37,11 @@ namespace DiscordBot.DataAccess
         private readonly SheetsService sheetsService;
         private int largestKey;
 
-        private const string KeyColumn = "A";
-        private const string NameColumn = "B";
-        private const string DescriptionColumn = "C";
-        private const string TimeColumn = "D";
-        private const string LocationColumn = "E";
+        private readonly SheetsColumn KeyColumn = new SheetsColumn(0);
+        private readonly SheetsColumn NameColumn = new SheetsColumn(1);
+        private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
+        private readonly SheetsColumn TimeColumn = new SheetsColumn(3);
+        private readonly SheetsColumn LocationColumn = new SheetsColumn(4);
 
         public EventsSheetsService()
         {
@@ -54,47 +54,6 @@ namespace DiscordBot.DataAccess
             });
 
             largestKey = GetLargestKey();
-        }
-
-        public async Task ReadColumns()
-        {
-            var range = "A2:B27";
-            var request =
-                sheetsService.Spreadsheets.Values.Get(spreadsheetId, range);
-
-            var response = await request.ExecuteAsync();
-            var values = response.Values;
-            if (values == null || values.Count <= 0)
-            {
-                Console.WriteLine("No data found.");
-                return;
-            }
-
-            Console.WriteLine("Alpha, Numeric");
-            foreach (var row in values)
-            {
-                Console.WriteLine($"{row[0]}, {row[1]}");
-            }
-        }
-
-        public async Task WriteRow()
-        {
-            var valueRange = new ValueRange
-            {
-                Values = new List<IList<object>>
-                {
-                    new List<object>
-                    {
-                        "Test write:",
-                        1
-                    }
-                },
-                Range = "A30:B30"
-            };
-            var request = sheetsService.Spreadsheets.Values.Update(valueRange, spreadsheetId, "A30:B30");
-            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
-
-            await request.ExecuteAsync();
         }
 
         public async Task AddEventAsync(string name, string description, DateTime time)
@@ -120,7 +79,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Append(
                 newRow,
                 spreadsheetId,
-                $"{KeyColumn}:{LocationColumn}"
+                $"{KeyColumn.Letter}:{LocationColumn.Letter}"
             );
             request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
 
@@ -140,7 +99,7 @@ namespace DiscordBot.DataAccess
 
             if (name != null)
             {
-                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumn}{rowNumber}", name));
+                data.Add(MakeCellUpdate($"EventsMetadata!{NameColumn.Letter}{rowNumber}", name));
             }
 
             if (description != null)
@@ -151,7 +110,7 @@ namespace DiscordBot.DataAccess
             if (time != null)
             {
                 data.Add(MakeCellUpdate(
-                    $"EventsMetadata!{TimeColumn}{rowNumber}",
+                    $"EventsMetadata!{TimeColumn.Letter}{rowNumber}",
                     time.Value.ToString("s")
                 ));
             }
@@ -177,15 +136,49 @@ namespace DiscordBot.DataAccess
 
         public async Task<DiscordEvent> GetEventAsync(int eventKey)
         {
-             return new DiscordEvent("Christmas Day", "Christmas!", eventKey, new DateTime(2020, 12, 25));
+            var discordEvents = await ListEventsAsync();
+
+            var result = discordEvents.FirstOrDefault(discordEvent => discordEvent.Key == eventKey);
+            if (result == null)
+            {
+                throw new EventNotFoundException($"Event key {eventKey} not recognised");
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
         {
-            return new[]
+            try
             {
-                new DiscordEvent("Christmas Day", "Christmas!", 1, new DateTime(2020, 12, 25))
-            };
+                var request = sheetsService.Spreadsheets.Values.Get(
+                    spreadsheetId,
+                    $"EventsMetadata!{KeyColumn.Letter}:{LocationColumn.Letter}"
+                );
+                request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+                var response = await request.ExecuteAsync();
+
+                if (response == null || response.Values.Count < 1)
+                {
+                    throw new EventsSheetsInitialisationException("Metadata sheet is empty");
+                }
+
+                return response.Values
+                    .Skip(1) // Skip header row
+                    .Select(row => new DiscordEvent(
+                        (string) row[NameColumn.Index],
+                        (string) row[DescriptionColumn.Index],
+                        int.Parse((string) row[KeyColumn.Index]),
+                        (DateTime) row[TimeColumn.Index]
+                    ));
+            }
+            catch (GoogleApiException exception)
+            {
+                throw new EventsSheetsInitialisationException(
+                    "Events Sheets Service couldn't initialise",
+                    exception
+                );
+            }
         }
 
         private static ServiceAccountCredential GetCredential(string path = "credentials.json")
@@ -194,8 +187,9 @@ namespace DiscordBot.DataAccess
                 new FileStream(path, FileMode.Open, FileAccess.Read);
 
             return GoogleCredential.FromStream(stream)
-                .CreateScoped(scopes)
-                .UnderlyingCredential as ServiceAccountCredential;
+                       .CreateScoped(scopes)
+                       .UnderlyingCredential as ServiceAccountCredential
+                   ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
         }
 
         private int GetLargestKey()
@@ -204,7 +198,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn}:{KeyColumn}"
+                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = request.Execute();
 
@@ -219,7 +213,7 @@ namespace DiscordBot.DataAccess
                     return 0;
                 }
 
-                return int.Parse((string)response.Values.Skip(1).Last()[0]);
+                return int.Parse((string)response.Values.Skip(1).Last()[KeyColumn.Index]);
             }
             catch (GoogleApiException exception)
             {
@@ -236,7 +230,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"EventsMetadata!{KeyColumn}:{KeyColumn}"
+                    $"EventsMetadata!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
                 var response = await request.ExecuteAsync();
 
@@ -248,14 +242,14 @@ namespace DiscordBot.DataAccess
                 var rowNumber = response.Values
                     .Skip(1)  // Skip header row
                     .Select((values, index) => (values, index))
-                    .First(row => int.Parse((string)row.values[0]) == eventKey);
+                    .First(row => int.Parse((string)row.values[KeyColumn.Index]) == eventKey);
 
                 // Extract row number, plus 2 to correct for two this:
                 // These lists are 0 indexed, but Sheets index from 1
                 // Correct for skipping row 1, the header
                 return rowNumber.index + 2;
             }
-            catch (InvalidOperationException e)
+            catch (InvalidOperationException)
             {
                 throw new EventNotFoundException($"Event key {eventKey} not recognised");
             }
