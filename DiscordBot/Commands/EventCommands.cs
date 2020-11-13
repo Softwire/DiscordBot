@@ -181,14 +181,13 @@ namespace DiscordBot.Commands
             {
                 var eventsSheetService = context.Dependencies.GetDependency<IEventsSheetsService>();
                 await eventsSheetService.EditEventAsync(eventKey, newDescription, newName, newTime);
-                await context.RespondAsync($"{context.Member.Mention} - changes saved!");
+                await context.RespondAsync($"{context.Member.Mention} - changes saved!", embed: eventEmbed);
             }
             catch (EventNotFoundException)
             {
                 await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
             }
         }
-
 
         private static async Task<DiscordEmbedBuilder?> GetEventEmbed(CommandContext context, int eventKey)
         {
