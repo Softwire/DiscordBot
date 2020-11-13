@@ -170,7 +170,7 @@ namespace DiscordBot.DataAccess
                         (string) row[DescriptionColumn.Index],
                         int.Parse((string) row[KeyColumn.Index]),
                         (DateTime) row[TimeColumn.Index]
-                ));
+                    ));
             }
             catch (GoogleApiException exception)
             {
@@ -187,9 +187,9 @@ namespace DiscordBot.DataAccess
                 new FileStream(path, FileMode.Open, FileAccess.Read);
 
             return GoogleCredential.FromStream(stream)
-                .CreateScoped(scopes)
-                .UnderlyingCredential as ServiceAccountCredential
-                ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
+                       .CreateScoped(scopes)
+                       .UnderlyingCredential as ServiceAccountCredential
+                   ?? throw new EventsSheetsInitialisationException("Credential maker returned null");
         }
 
         private int GetLargestKey()
