@@ -86,7 +86,7 @@ namespace DiscordBot.Commands
 
             await eventsSheetService.AddEventAsync(eventName, eventDescription, eventTime.Value.DateTime);
 
-            var discordEmbed = new DiscordEmbedBuilder
+            var eventEmbed = new DiscordEmbedBuilder
             {
                 Title = eventName,
                 Description = eventDescription,
@@ -94,7 +94,7 @@ namespace DiscordBot.Commands
                 Timestamp = eventTime
             };
 
-            await context.RespondAsync(embed: discordEmbed);
+            await context.RespondAsync(embed: eventEmbed);
         }
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
@@ -106,13 +106,13 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var discordEmbed = await GetEventEmbed(context, eventKey.Value);
-            if (discordEmbed == null)
+            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            if (eventEmbed == null)
             {
                 return;
             }
 
-            await context.RespondAsync($"{context.Member.Mention}", embed: discordEmbed);
+            await context.RespondAsync($"{context.Member.Mention}", embed: eventEmbed);
             await context.RespondAsync(
                 $"{context.Member.Mention} - what field do you want to edit? (``name``, ``description``, ``time``)\n" +
                 "``save`` to save changes.");
@@ -122,7 +122,7 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await EditEventField(context, interactivity, eventKey.Value, editField, discordEmbed);
+            await EditEventField(context, interactivity, eventKey.Value, editField, eventEmbed);
         }
 
         private static async Task EditEventField(
@@ -130,7 +130,7 @@ namespace DiscordBot.Commands
             InteractivityModule interactivity,
             int eventKey,
             string editField,
-            DiscordEmbedBuilder discordEmbed)
+            DiscordEmbedBuilder eventEmbed)
         {
             string? newName = null;
             string? newDescription = null;
@@ -146,7 +146,7 @@ namespace DiscordBot.Commands
                         return;
                     }
 
-                    discordEmbed.Title = newName;
+                    eventEmbed.Title = newName;
                     break;
                 case "description":
                     await context.RespondAsync($"{context.Member.Mention} - enter the new description.");
@@ -156,7 +156,7 @@ namespace DiscordBot.Commands
                         return;
                     }
 
-                    discordEmbed.Description = newDescription;
+                    eventEmbed.Description = newDescription;
                     break;
                 case "time":
                     await context.RespondAsync($"{context.Member.Mention} - enter the new event time.");
@@ -166,7 +166,7 @@ namespace DiscordBot.Commands
                         return;
                     }
 
-                    discordEmbed.Timestamp = newTime.Value.DateTime;
+                    eventEmbed.Timestamp = newTime.Value.DateTime;
                     break;
             }
 
@@ -180,7 +180,7 @@ namespace DiscordBot.Commands
                 await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - changes saved!", embed: discordEmbed);
+            await context.RespondAsync($"{context.Member.Mention} - changes saved!", embed: eventEmbed);
         }
 
         private static async Task<DiscordEmbedBuilder?> GetEventEmbed(CommandContext context, int eventKey)
