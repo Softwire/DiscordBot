@@ -14,7 +14,12 @@ namespace DiscordBot.DataAccess
 {
     public interface IEventsSheetsService
     {
-        Task AddEventAsync(string name, string description, DateTime time);
+        Task AddEventAsync(
+            string name,
+            string description,
+            DateTime time,
+            IEnumerable<EventResponse>? responses = null
+        );
         Task EditEventAsync(
             int eventKey,
             string? description = null,
@@ -25,6 +30,12 @@ namespace DiscordBot.DataAccess
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
+
+        Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji);
+        Task ClearResponsesForUser(int eventKey, ulong userId);
+
+        Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUser(int eventId);
+        Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponse(int eventId);
     }
 
     public class EventsSheetsService : IEventsSheetsService
@@ -58,8 +69,19 @@ namespace DiscordBot.DataAccess
             metadataSheetId = GetMetadataSheetId();
         }
 
-        public async Task AddEventAsync(string name, string description, DateTime time)
+        public async Task AddEventAsync(
+            string name,
+            string description,
+            DateTime time,
+            IEnumerable<EventResponse>? responses = null
+        )
         {
+            responses ??= new[]
+            {
+                new EventResponse(":white_check_mark:", "Yes"),
+                new EventResponse(":grey_question:", "Maybe")
+            };
+
             // Allocate new key
             largestKey++;
 
@@ -206,6 +228,34 @@ namespace DiscordBot.DataAccess
                 );
             }
         }
+
+#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
+        public async Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji)
+        {
+        }
+
+        public async Task ClearResponsesForUser(int eventKey, ulong userId)
+        {
+        }
+
+        public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUser(int eventId)
+        {
+            return new Dictionary<ulong, IEnumerable<EventResponse>>
+            {
+                { 0UL, new[] { new EventResponse(":white_check_mark:", "Yes") } },
+                { 1UL, new[] { new EventResponse(":grey_question:", "Maybe") } }
+            };
+        }
+
+        public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponse(int eventId)
+        {
+            return new Dictionary<EventResponse, IEnumerable<ulong>>
+            {
+                { new EventResponse(":white_check_mark:", "Yes"), new[] { 0UL } },
+                { new EventResponse(":grey_question:", "Maybe"), new[] { 1UL } }
+            };
+        }
+#pragma warning restore 1998
 
         private static ServiceAccountCredential GetCredential()
         {
