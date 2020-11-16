@@ -14,6 +14,7 @@ namespace DiscordBot.Commands
         private static readonly string[] EventOperations =
         {
             "create",
+            "list",
             "remove",
             "show",
             "edit",
@@ -41,6 +42,7 @@ namespace DiscordBot.Commands
             await context.RespondAsync(
                 $"{context.Member.Mention} - choose one of the actions below or answer ``stop`` to cancel. (time out in 30s)\n" +
                 "``create`` - create new event.\n" +
+                "``list`` - list events\n" +
                 "``remove`` - delete event.\n" +
                 "``show`` - show event details.\n" +
                 "``edit`` - edit event.\n"
@@ -56,6 +58,9 @@ namespace DiscordBot.Commands
             {
                 case "create":
                     await CreateEvent(context, interactivity);
+                    break;
+                case "list":
+                    await ListEvents(context, interactivity);
                     break;
                 case "remove":
                     await RemoveEvent(context, interactivity);
@@ -122,7 +127,7 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var message = await context.RespondAsync(
+            await context.RespondAsync(
                 $"{context.Member.Mention} - is this the event you want to delete? (``yes``/``no``)",
                 embed: discordEmbed);
             var confirmationResponse = await GetUserConfirmation(context, interactivity);
@@ -141,7 +146,7 @@ namespace DiscordBot.Commands
                 }
                 catch (EventNotFoundException)
                 {
-                    await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found");
+                    await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found.");
                 }
             }
         }
@@ -162,6 +167,26 @@ namespace DiscordBot.Commands
             }
             
             await context.RespondAsync($"{context.Member.Mention} - here is the event", embed: eventEmbed);
+  
+        public async Task ListEvents(CommandContext context, InteractivityModule interactivity)
+        {
+            var eventsSheetsService = context.Dependencies.GetDependency<IEventsSheetsService>();
+            var eventsList = await eventsSheetsService.ListEventsAsync();
+
+            var eventsListEmbed = new DiscordEmbedBuilder
+            {
+                Title = "Events"
+            };
+
+            foreach (var discordEvent in eventsList)
+            {
+                eventsListEmbed.AddField(
+                    $"{discordEvent.Key}) {discordEvent.Name}",
+                    $"{discordEvent.Time}"
+                );
+            }
+
+            await context.RespondAsync($"{context.Member.Mention} - here are all created events.", embed: eventsListEmbed);
         }
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
