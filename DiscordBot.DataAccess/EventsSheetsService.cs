@@ -177,6 +177,7 @@ namespace DiscordBot.DataAccess
         public async Task RemoveEventAsync(int eventKey)
         {
             var rowNumber = await GetEventRowNumber(eventKey);
+            var responseSheetId = await GetSheetIdFromTitleAsync(eventKey.ToString());
 
             var requestParameters = new BatchUpdateSpreadsheetRequest()
             {
@@ -327,17 +328,44 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        private int GetMetadataSheetId()
+        private int GetSheetIdFromTitle(string title)
         {
-            var sheets = sheetsService.Spreadsheets.Get(spreadsheetId).Execute().Sheets;
-            var metadataSheet = sheets.FirstOrDefault(sheet => sheet.Properties.Title == MetadataSheetName);
+            var spreadsheet = sheetsService.Spreadsheets.Get(spreadsheetId).Execute();
+            var sheets = spreadsheet.Sheets;
+
+            return FindSheetId(sheets, title);
+        }
+
+        private async Task<int> GetSheetIdFromTitleAsync(string title)
+        {
+            var spreadsheet = await sheetsService.Spreadsheets.Get(spreadsheetId).ExecuteAsync();
+            var sheets = spreadsheet.Sheets;
+
+            return FindSheetId(sheets, title);
+        }
+
+        private int FindSheetId(IEnumerable<Sheet> sheets, string title)
+        {
+            var metadataSheet = sheets.FirstOrDefault(sheet => sheet.Properties.Title == title);
 
             if (metadataSheet?.Properties.SheetId == null)
             {
-                throw new EventsSheetsInitialisationException("Could not find metadata sheet");
+                throw new SheetNotFoundException();
             }
 
             return metadataSheet.Properties.SheetId.Value;
+        }
+
+        private int GetMetadataSheetId()
+        {
+            try
+            {
+                return GetSheetIdFromTitle(MetadataSheetName);
+            }
+            catch (SheetNotFoundException)
+            {
+                throw new EventsSheetsInitialisationException("Could not find metadata sheet");
+            }
         }
 
         private async Task<int> GetEventRowNumber(int eventKey)
