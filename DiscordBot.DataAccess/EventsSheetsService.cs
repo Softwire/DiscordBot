@@ -18,7 +18,6 @@ namespace DiscordBot.DataAccess
             string name,
             string description,
             DateTime time,
-            ulong? messageId = null,
             IEnumerable<EventResponse>? responses = null
         );
         Task EditEventAsync(
@@ -28,9 +27,11 @@ namespace DiscordBot.DataAccess
             DateTime? time = null,
             ulong? messageId = null
         );
+        Task AddMessageIdToEvent(int eventKey, ulong messageId);
         Task RemoveEventAsync(int eventKey);
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
+        Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
 
         Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji);
@@ -76,7 +77,6 @@ namespace DiscordBot.DataAccess
             string name,
             string description,
             DateTime time,
-            ulong? messageId = null,
             IEnumerable<EventResponse>? responses = null
         )
         {
@@ -165,6 +165,11 @@ namespace DiscordBot.DataAccess
             await request.ExecuteAsync();
         }
 
+        public async Task AddMessageIdToEvent(int eventKey, ulong messageId)
+        {
+            await EditEventAsync(eventKey, messageId: messageId);
+        }
+
         public async Task RemoveEventAsync(int eventKey)
         {
             var rowNumber = await GetEventRowNumber(eventKey);
@@ -206,6 +211,19 @@ namespace DiscordBot.DataAccess
             return result;
         }
 
+        public async Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId)
+        {
+            var discordEvents = await ListEventsAsync();
+
+            var result = discordEvents.FirstOrDefault(discordEvent => discordEvent.MessageId == messageId);
+            if (result == null)
+            {
+                throw new EventNotFoundException($"Message ID {messageId} not recognised");
+            }
+
+            return result;
+        }
+
         public async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
         {
             try
@@ -230,9 +248,7 @@ namespace DiscordBot.DataAccess
                         int.Parse((string) row[KeyColumn.Index]),
                         (DateTime) row[TimeColumn.Index],
                         (string) row[TimeZoneColumn.Index],
-                        row.Count >= MessageIdColumn.Index + 1 && (string) row[MessageIdColumn.Index] != ""
-                            ? (ulong?) ulong.Parse((string) row[MessageIdColumn.Index])
-                            : null
+                        ParseMessageId(row)
                     ));
             }
             catch (GoogleApiException exception)
@@ -371,7 +387,24 @@ namespace DiscordBot.DataAccess
                     exception
                 );
             }
+        }
 
+        private ulong? ParseMessageId(IList<object> row)
+        {
+            // Does row contain a messageId cell?
+            // Or has it been trimmed off the end of the row because it is empty?
+            if (row.Count >= MessageIdColumn.Index + 1)
+            {
+                return null;
+            }
+
+            // Is the cell empty?
+            if ((string) row[MessageIdColumn.Index] != "")
+            {
+                return null;
+            }
+
+            return ulong.Parse((string) row[MessageIdColumn.Index]);
         }
 
         private ValueRange MakeCellUpdate(string range, object value)
