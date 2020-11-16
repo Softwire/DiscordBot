@@ -84,16 +84,16 @@ namespace DiscordBot.DataAccess
                 new EventResponse(":white_check_mark:", "Yes"),
                 new EventResponse(":grey_question:", "Maybe")
             };
-            var responseList = responses.ToList();
 
             // Allocate new key
             largestKey++;
 
-            var addEventMetadata = MakeAddMetadataRequest(largestKey, name, description, time);
+            var addEventMetadata =
+                SheetsServiceRequests.AddEventMetadata(metadataSheetId, largestKey, name, description, time);
 
-            var addResponseSheet = MakeAddResponseSheetRequest(largestKey);
+            var addResponseSheet = SheetsServiceRequests.AddResponseSheet(largestKey);
 
-            var addResponseColumns = MakeAddResponseColumnsRequest(responseList);
+            var addResponseColumns = SheetsServiceRequests.AddResponseColumns(largestKey, responses);
 
             var requests = new BatchUpdateSpreadsheetRequest()
             {
@@ -180,22 +180,7 @@ namespace DiscordBot.DataAccess
 
             var requestParameters = new BatchUpdateSpreadsheetRequest()
             {
-                Requests = new[]
-                {
-                    new Request()
-                    {
-                        DeleteDimension = new DeleteDimensionRequest()
-                        {
-                            Range = new DimensionRange()
-                            {
-                                SheetId = metadataSheetId,
-                                Dimension = "ROWS",
-                                StartIndex = rowNumber - 1,
-                                EndIndex = rowNumber
-                            }
-                        }
-                    }
-                }
+                Requests = new[] { SheetsServiceRequests.RemoveEvent(metadataSheetId, rowNumber) }
             };
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
@@ -353,91 +338,6 @@ namespace DiscordBot.DataAccess
             }
 
             return metadataSheet.Properties.SheetId.Value;
-        }
-
-        private Request MakeAddMetadataRequest(int eventKey, string name, string description, DateTime time)
-        {
-            var appendCellsRequest = new AppendCellsRequest()
-            {
-                Rows = new[]
-                {
-                    new RowData()
-                    {
-                        Values = new List<CellData>()
-                        {
-                            MakeCellData(eventKey),
-                            MakeCellData(name),
-                            MakeCellData(description),
-                            MakeCellData(time.ToString("s")),
-                            MakeCellData("Europe/London")
-                        }
-                    }
-                },
-                SheetId = metadataSheetId,
-                Fields = "*"
-            };
-
-            return new Request() { AppendCells = appendCellsRequest };
-        }
-
-        private Request MakeAddResponseSheetRequest(int eventKey)
-        {
-            var addResponseSheet = new AddSheetRequest()
-            {
-                Properties = new SheetProperties()
-                {
-                    Title = eventKey.ToString(),
-                    SheetId = eventKey
-                }
-            };
-
-            return new Request() { AddSheet = addResponseSheet };
-        }
-
-        private Request MakeAddResponseColumnsRequest(List<EventResponse> responseList)
-        {
-            var addResponseColumns = new AppendCellsRequest()
-            {
-                Rows = new[]
-                {
-                    new RowData()
-                    {
-                        Values = responseList
-                            .Select(response => response.Emoji)
-                            .Prepend("User id / Response emoji")
-                            .Select(MakeCellData)
-                            .ToList()
-                    },
-                    new RowData()
-                    {
-                        Values = responseList
-                            .Select(response => response.ResponseName)
-                            .Prepend("Response name:")
-                            .Select(MakeCellData)
-                            .ToList()
-                    }
-                },
-                SheetId = largestKey,
-                Fields = "*"
-            };
-
-            return new Request() { AppendCells = addResponseColumns };
-        }
-
-        private CellData MakeCellData(double number)
-        {
-            return new CellData()
-            {
-                UserEnteredValue = new ExtendedValue() { NumberValue = number }
-            };
-        }
-
-        private CellData MakeCellData(string stringValue)
-        {
-            return new CellData()
-            {
-                UserEnteredValue = new ExtendedValue() { StringValue = stringValue }
-            };
         }
 
         private async Task<int> GetEventRowNumber(int eventKey)
