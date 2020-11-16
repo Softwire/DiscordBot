@@ -167,6 +167,7 @@ namespace DiscordBot.Commands
             }
             
             await context.RespondAsync($"{context.Member.Mention} - here is the event", embed: eventEmbed);
+        }
   
         public async Task ListEvents(CommandContext context, InteractivityModule interactivity)
         {
