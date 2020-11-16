@@ -371,3 +371,6 @@ DiscordBot.DataAccess/*credentials.json
 
 # Ignore Azure deployment settings
 DiscordBot/Settings.job
+
+# Ignore launch settings file (containing API keys at the moment)
+**/*launchSettings.json
