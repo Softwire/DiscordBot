@@ -355,14 +355,6 @@ namespace DiscordBot.DataAccess
             return metadataSheet.Properties.SheetId.Value;
         }
 
-        private CellData MakeCellData(double number)
-        {
-            return new CellData()
-            {
-                UserEnteredValue = new ExtendedValue() { NumberValue = largestKey }
-            };
-        }
-
         private Request MakeAddMetadataRequest(int eventKey, string name, string description, DateTime time)
         {
             var appendCellsRequest = new AppendCellsRequest()
@@ -432,6 +424,14 @@ namespace DiscordBot.DataAccess
             return new Request() { AppendCells = addResponseColumns };
         }
 
+        private CellData MakeCellData(double number)
+        {
+            return new CellData()
+            {
+                UserEnteredValue = new ExtendedValue() { NumberValue = number }
+            };
+        }
+
         private CellData MakeCellData(string stringValue)
         {
             return new CellData()
@@ -439,7 +439,6 @@ namespace DiscordBot.DataAccess
                 UserEnteredValue = new ExtendedValue() { StringValue = stringValue }
             };
         }
-
 
         private async Task<int> GetEventRowNumber(int eventKey)
         {
