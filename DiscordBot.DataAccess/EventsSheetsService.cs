@@ -27,18 +27,18 @@ namespace DiscordBot.DataAccess
             DateTime? time = null,
             ulong? messageId = null
         );
-        Task AddMessageIdToEvent(int eventKey, ulong messageId);
+        Task AddMessageIdToEventAsync(int eventKey, ulong messageId);
         Task RemoveEventAsync(int eventKey);
 
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
 
-        Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji);
-        Task ClearResponsesForUser(int eventKey, ulong userId);
+        Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji);
+        Task ClearResponsesForUserAsync(int eventKey, ulong userId);
 
-        Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUser(int eventId);
-        Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponse(int eventId);
+        Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId);
+        Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId);
     }
 
     public class EventsSheetsService : IEventsSheetsService
@@ -165,7 +165,7 @@ namespace DiscordBot.DataAccess
             await request.ExecuteAsync();
         }
 
-        public async Task AddMessageIdToEvent(int eventKey, ulong messageId)
+        public async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
         {
             await EditEventAsync(eventKey, messageId: messageId);
         }
@@ -261,15 +261,15 @@ namespace DiscordBot.DataAccess
         }
 
 #pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
-        public async Task AddResponseForUser(int eventKey, ulong userId, string responseEmoji)
+        public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
         {
         }
 
-        public async Task ClearResponsesForUser(int eventKey, ulong userId)
+        public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
         }
 
-        public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUser(int eventId)
+        public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId)
         {
             return new Dictionary<ulong, IEnumerable<EventResponse>>
             {
@@ -278,7 +278,7 @@ namespace DiscordBot.DataAccess
             };
         }
 
-        public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponse(int eventId)
+        public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
         {
             return new Dictionary<EventResponse, IEnumerable<ulong>>
             {
