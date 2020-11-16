@@ -18,13 +18,15 @@ namespace DiscordBot.DataAccess
             string name,
             string description,
             DateTime time,
+            ulong? messageId = null,
             IEnumerable<EventResponse>? responses = null
         );
         Task EditEventAsync(
             int eventKey,
             string? description = null,
             string? name = null,
-            DateTime? time = null
+            DateTime? time = null,
+            ulong? messageId = null
         );
         Task RemoveEventAsync(int eventKey);
 
@@ -53,7 +55,8 @@ namespace DiscordBot.DataAccess
         private readonly SheetsColumn NameColumn = new SheetsColumn(1);
         private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
         private readonly SheetsColumn TimeColumn = new SheetsColumn(3);
-        private readonly SheetsColumn LocationColumn = new SheetsColumn(4);
+        private readonly SheetsColumn TimeZoneColumn = new SheetsColumn(4);
+        private readonly SheetsColumn MessageIdColumn = new SheetsColumn(5);
 
         public EventsSheetsService()
         {
@@ -73,6 +76,7 @@ namespace DiscordBot.DataAccess
             string name,
             string description,
             DateTime time,
+            ulong? messageId = null,
             IEnumerable<EventResponse>? responses = null
         )
         {
@@ -95,7 +99,8 @@ namespace DiscordBot.DataAccess
                         name,
                         description,
                         time.ToString("s"),
-                        "Europe/London"
+                        "Europe/London",
+                        messageId.ToString() ?? ""
                     }
                 }
             };
@@ -103,7 +108,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Append(
                 newRow,
                 spreadsheetId,
-                $"{KeyColumn.Letter}:{LocationColumn.Letter}"
+                $"{KeyColumn.Letter}:{TimeZoneColumn.Letter}"
             );
             request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
 
@@ -114,7 +119,8 @@ namespace DiscordBot.DataAccess
             int eventKey,
             string? description = null,
             string? name = null,
-            DateTime? time = null
+            DateTime? time = null,
+            ulong? messageId = null
         )
         {
             var rowNumber = await GetEventRowNumber(eventKey);
@@ -137,6 +143,11 @@ namespace DiscordBot.DataAccess
                     $"{MetadataSheetName}!{TimeColumn.Letter}{rowNumber}",
                     time.Value.ToString("s")
                 ));
+            }
+
+            if (messageId != null)
+            {
+                data.Add(MakeCellUpdate($"{MetadataSheetName}!{MessageIdColumn}{rowNumber}", messageId));
             }
 
             if (!data.Any())
@@ -201,7 +212,7 @@ namespace DiscordBot.DataAccess
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"{MetadataSheetName}!{KeyColumn.Letter}:{LocationColumn.Letter}"
+                    $"{MetadataSheetName}!{KeyColumn.Letter}:{MessageIdColumn.Letter}"
                 );
                 request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
                 var response = await request.ExecuteAsync();
@@ -217,7 +228,11 @@ namespace DiscordBot.DataAccess
                         (string) row[NameColumn.Index],
                         (string) row[DescriptionColumn.Index],
                         int.Parse((string) row[KeyColumn.Index]),
-                        (DateTime) row[TimeColumn.Index]
+                        (DateTime) row[TimeColumn.Index],
+                        (string) row[TimeZoneColumn.Index],
+                        row.Count >= MessageIdColumn.Index + 1 && (string) row[MessageIdColumn.Index] != ""
+                            ? (ulong?) ulong.Parse((string) row[MessageIdColumn.Index])
+                            : null
                     ));
             }
             catch (GoogleApiException exception)
