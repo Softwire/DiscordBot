@@ -16,6 +16,7 @@ namespace DiscordBot.Commands
             "create",
             "list",
             "remove",
+            "show",
             "edit",
             "stop"
         };
@@ -43,6 +44,7 @@ namespace DiscordBot.Commands
                 "``create`` - create new event.\n" +
                 "``list`` - list events\n" +
                 "``remove`` - delete event.\n" +
+                "``show`` - show event details.\n" +
                 "``edit`` - edit event.\n"
             );
 
@@ -62,6 +64,9 @@ namespace DiscordBot.Commands
                     break;
                 case "remove":
                     await RemoveEvent(context, interactivity);
+                    break;
+                case "show":
+                    await ShowEvent(context, interactivity);
                     break;
                 case "edit":
                     await EditEvent(context, interactivity);
@@ -109,7 +114,7 @@ namespace DiscordBot.Commands
 
         public async Task RemoveEvent(CommandContext context, InteractivityModule interactivity)
         {
-            await context.RespondAsync($"{context.Member.Mention} - which event do you want to delete");
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context, interactivity);
             if (eventKey == null)
             {
@@ -146,6 +151,23 @@ namespace DiscordBot.Commands
             }
         }
 
+        public async Task ShowEvent(CommandContext context, InteractivityModule interactivity)
+        {
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
+            var eventKey = await GetUserIntResponse(context, interactivity);
+            if (eventKey == null)
+            {
+                return;
+            }
+            
+            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            if (eventEmbed == null)
+            {
+                return;
+            }
+            
+            await context.RespondAsync($"{context.Member.Mention} - here is the event", embed: eventEmbed);
+  
         public async Task ListEvents(CommandContext context, InteractivityModule interactivity)
         {
             var eventsSheetsService = context.Dependencies.GetDependency<IEventsSheetsService>();
@@ -169,7 +191,7 @@ namespace DiscordBot.Commands
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
         {
-            await context.RespondAsync($"{context.Member.Mention} - what is the event key?");
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context, interactivity);
             if (eventKey == null)
             {
