@@ -114,7 +114,7 @@ namespace DiscordBot.Commands
 
         public async Task RemoveEvent(CommandContext context, InteractivityModule interactivity)
         {
-            await context.RespondAsync($"{context.Member.Mention} - which event do you want to delete");
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context, interactivity);
             if (eventKey == null)
             {
@@ -153,7 +153,7 @@ namespace DiscordBot.Commands
 
         public async Task ShowEvent(CommandContext context, InteractivityModule interactivity)
         {
-            await context.RespondAsync($"{context.Member.Mention} - what is the event key?");
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context, interactivity);
             if (eventKey == null)
             {
@@ -191,7 +191,7 @@ namespace DiscordBot.Commands
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
         {
-            await context.RespondAsync($"{context.Member.Mention} - what is the event key?");
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context, interactivity);
             if (eventKey == null)
             {
