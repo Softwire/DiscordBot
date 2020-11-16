@@ -24,8 +24,7 @@ namespace DiscordBot.DataAccess
             int eventKey,
             string? description = null,
             string? name = null,
-            DateTime? time = null,
-            ulong? messageId = null
+            DateTime? time = null
         );
         Task AddMessageIdToEventAsync(int eventKey, ulong messageId);
         Task RemoveEventAsync(int eventKey);
@@ -100,7 +99,6 @@ namespace DiscordBot.DataAccess
                         description,
                         time.ToString("s"),
                         "Europe/London",
-                        messageId.ToString() ?? ""
                     }
                 }
             };
@@ -119,8 +117,7 @@ namespace DiscordBot.DataAccess
             int eventKey,
             string? description = null,
             string? name = null,
-            DateTime? time = null,
-            ulong? messageId = null
+            DateTime? time = null
         )
         {
             var rowNumber = await GetEventRowNumber(eventKey);
@@ -145,11 +142,6 @@ namespace DiscordBot.DataAccess
                 ));
             }
 
-            if (messageId != null)
-            {
-                data.Add(MakeCellUpdate($"{MetadataSheetName}!{MessageIdColumn}{rowNumber}", messageId));
-            }
-
             if (!data.Any())
             {
                 return;
@@ -167,7 +159,24 @@ namespace DiscordBot.DataAccess
 
         public async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
         {
-            await EditEventAsync(eventKey, messageId: messageId);
+            var rowNumber = await GetEventRowNumber(eventKey);
+
+            var cellValue = new ValueRange()
+            {
+                Values = new IList<object>[]
+                {
+                    new object[] { messageId }
+                }
+            };
+
+            var request = sheetsService.Spreadsheets.Values.Update(
+                cellValue,
+                spreadsheetId,
+                $"{MetadataSheetName}!{TimeZoneColumn.Letter}{rowNumber}"
+            );
+            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
+
+            await request.ExecuteAsync();
         }
 
         public async Task RemoveEventAsync(int eventKey)
@@ -391,15 +400,16 @@ namespace DiscordBot.DataAccess
 
         private ulong? ParseMessageId(IList<object> row)
         {
-            // Does row contain a messageId cell?
-            // Or has it been trimmed off the end of the row because it is empty?
-            if (row.Count >= MessageIdColumn.Index + 1)
+            // The messageId might have been trimmed off the end of the row because it was empty
+            // so check for this.
+            var rowContainsMessageId = row.Count < MessageIdColumn.Index + 1;
+            if (rowContainsMessageId)
             {
                 return null;
             }
 
-            // Is the cell empty?
-            if ((string) row[MessageIdColumn.Index] != "")
+            var messageIdCellIsEmpty = (string) row[MessageIdColumn.Index] == "";
+            if (messageIdCellIsEmpty)
             {
                 return null;
             }
