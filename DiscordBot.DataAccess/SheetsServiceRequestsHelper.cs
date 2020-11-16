@@ -6,7 +6,7 @@ using Google.Apis.Sheets.v4.Data;
 
 namespace DiscordBot.DataAccess
 {
-    internal static class SheetsServiceRequests
+    internal static class SheetsServiceRequestsHelper
     {
         public static Request AddEventMetadata(
             int metadataSheetId,

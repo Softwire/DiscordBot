@@ -89,11 +89,11 @@ namespace DiscordBot.DataAccess
             largestKey++;
 
             var addEventMetadata =
-                SheetsServiceRequests.AddEventMetadata(metadataSheetId, largestKey, name, description, time);
+                SheetsServiceRequestsHelper.AddEventMetadata(metadataSheetId, largestKey, name, description, time);
 
-            var addResponseSheet = SheetsServiceRequests.AddResponseSheet(largestKey);
+            var addResponseSheet = SheetsServiceRequestsHelper.AddResponseSheet(largestKey);
 
-            var addResponseColumns = SheetsServiceRequests.AddResponseColumns(largestKey, responses);
+            var addResponseColumns = SheetsServiceRequestsHelper.AddResponseColumns(largestKey, responses);
 
             var requests = new BatchUpdateSpreadsheetRequest()
             {
@@ -180,7 +180,7 @@ namespace DiscordBot.DataAccess
 
             var requestParameters = new BatchUpdateSpreadsheetRequest()
             {
-                Requests = new[] { SheetsServiceRequests.RemoveEvent(metadataSheetId, rowNumber) }
+                Requests = new[] { SheetsServiceRequestsHelper.RemoveEvent(metadataSheetId, rowNumber) }
             };
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
