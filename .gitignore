@@ -368,3 +368,6 @@ obj/
 
 # Google APIs Credentials file
 DiscordBot.DataAccess/*credentials.json
+
+# Ignore Azure deployment settings
+DiscordBot/Settings.job
