@@ -181,7 +181,11 @@ namespace DiscordBot.DataAccess
 
             var requestParameters = new BatchUpdateSpreadsheetRequest()
             {
-                Requests = new[] { SheetsServiceRequestsHelper.RemoveEvent(metadataSheetId, rowNumber) }
+                Requests = new[]
+                {
+                    SheetsServiceRequestsHelper.RemoveEventMetadata(metadataSheetId, rowNumber),
+                    SheetsServiceRequestsHelper.RemoveEventResponses(responseSheetId)
+                }
             };
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
