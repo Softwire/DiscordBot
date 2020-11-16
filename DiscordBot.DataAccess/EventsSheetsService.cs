@@ -408,13 +408,15 @@ namespace DiscordBot.DataAccess
                 return null;
             }
 
-            var messageIdCellIsEmpty = (string) row[MessageIdColumn.Index] == "";
+            var cellContents = (string) row[MessageIdColumn.Index];
+
+            var messageIdCellIsEmpty = cellContents == "";
             if (messageIdCellIsEmpty)
             {
                 return null;
             }
 
-            return ulong.Parse((string) row[MessageIdColumn.Index]);
+            return ulong.Parse(cellContents);
         }
 
         private ValueRange MakeCellUpdate(string range, object value)
