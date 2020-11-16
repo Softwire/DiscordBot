@@ -28,5 +28,10 @@ namespace DiscordBot.DataAccess.Models
         {
             return HashCode.Combine(Emoji, ResponseName);
         }
+
+        public override string ToString()
+        {
+            return Emoji;
+        }
     }
 }

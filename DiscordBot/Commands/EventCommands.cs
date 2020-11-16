@@ -18,6 +18,7 @@ namespace DiscordBot.Commands
             "remove",
             "show",
             "edit",
+            "start",
             "stop"
         };
         private static readonly string[] EventFields =
@@ -45,7 +46,8 @@ namespace DiscordBot.Commands
                 "``list`` - list events\n" +
                 "``remove`` - delete event.\n" +
                 "``show`` - show event details.\n" +
-                "``edit`` - edit event.\n"
+                "``edit`` - edit event.\n" +
+                "``start`` - open signups for event."
             );
 
             var eventOperation = await GetUserResponse(context, interactivity, EventOperations);
@@ -70,6 +72,9 @@ namespace DiscordBot.Commands
                     break;
                 case "edit":
                     await EditEvent(context, interactivity);
+                    break;
+                case "start":
+                    await CreateSignupSheet(context, interactivity);
                     break;
             }
         }
@@ -131,23 +136,20 @@ namespace DiscordBot.Commands
                 $"{context.Member.Mention} - is this the event you want to delete? (``yes``/``no``)",
                 embed: discordEmbed);
             var confirmationResponse = await GetUserConfirmation(context, interactivity);
-            if (confirmationResponse == null)
+            if (confirmationResponse == null || confirmationResponse == false)
             {
                 return;
             }
 
-            if (confirmationResponse.Value)
+            try
             {
-                try
-                {
-                    await context.Dependencies.GetDependency<IEventsSheetsService>()
-                        .RemoveEventAsync(eventKey.Value);
-                    await context.RespondAsync($"{context.Member.Mention} - poof! It's gone.");
-                }
-                catch (EventNotFoundException)
-                {
-                    await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found.");
-                }
+                await context.Dependencies.GetDependency<IEventsSheetsService>()
+                    .RemoveEventAsync(eventKey.Value);
+                await context.RespondAsync($"{context.Member.Mention} - poof! It's gone.");
+            }
+            catch (EventNotFoundException)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - operation stopped: event not found.");
             }
         }
 
@@ -215,6 +217,72 @@ namespace DiscordBot.Commands
             }
 
             await EditEventField(context, interactivity, eventKey.Value, editField, eventEmbed);
+        }
+
+        private static async Task CreateSignupSheet(CommandContext context, InteractivityModule interactivity)
+        {
+            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
+            var eventKey = await GetUserIntResponse(context, interactivity);
+            if (eventKey == null)
+            {
+                return;
+            }
+
+            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            if (eventEmbed == null)
+            {
+                return;
+            }
+
+            await context.RespondAsync($"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)", embed: eventEmbed);
+            var confirmationResponse = await GetUserConfirmation(context, interactivity);
+            if (confirmationResponse == null || confirmationResponse == false)
+            {
+                return;
+            }
+
+            await SendSignupMessage(context, eventKey.Value);
+        }
+
+        private static async Task SendSignupMessage(CommandContext context, int eventKey)
+        { 
+            var eventsSheetsService = context.Dependencies.GetDependency<IEventsSheetsService>();
+            var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
+
+            var signupEmbed = new DiscordEmbedBuilder
+            {
+                Title = $"{discordEvent.Name} - {discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}",
+                Description = discordEvent.Description,
+                Footer = new DiscordEmbedBuilder.EmbedFooter
+                {
+                    Text = $"event key: {eventKey}"
+                }
+            };
+
+            var userResponseDictionary = await eventsSheetsService.GetSignupsByUserAsync(eventKey);
+
+            var usersField = string.Join("\n", userResponseDictionary.Select(
+                response => $"<@{response.Key}>"));
+            signupEmbed.AddField("Participants", usersField, true);
+
+            var responsesList = userResponseDictionary.Select(
+                response => string.Join(" ", response.Value));
+            var responsesField = string.Join("\n", responsesList);
+            signupEmbed.AddField("Responses", responsesField, true);
+
+            var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
+            var optionsField = string.Join(
+                "\n", optionsList.Select(response =>
+                    $"{response.Key.Emoji} - {response.Key.ResponseName}"));
+            signupEmbed.AddField("Response options", optionsField);
+
+            var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
+            await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
+
+            foreach (var response in optionsList.Keys)
+            {
+                await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
+            }
         }
 
         private static async Task EditEventField(
