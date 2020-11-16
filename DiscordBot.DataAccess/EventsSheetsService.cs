@@ -88,29 +88,24 @@ namespace DiscordBot.DataAccess
             // Allocate new key
             largestKey++;
 
-            var newRow = new ValueRange
+            var addEventMetadata =
+                SheetsServiceRequestsHelper.AddEventMetadata(metadataSheetId, largestKey, name, description, time);
+
+            var addResponseSheet = SheetsServiceRequestsHelper.AddResponseSheet(largestKey);
+
+            var addResponseColumns = SheetsServiceRequestsHelper.AddResponseColumns(largestKey, responses);
+
+            var requests = new BatchUpdateSpreadsheetRequest()
             {
-                Values = new IList<object>[]
+                Requests = new[]
                 {
-                    new object[]
-                    {
-                        largestKey,
-                        name,
-                        description,
-                        time.ToString("s"),
-                        "Europe/London",
-                    }
+                    addEventMetadata,
+                    addResponseSheet,
+                    addResponseColumns
                 }
             };
 
-            var request = sheetsService.Spreadsheets.Values.Append(
-                newRow,
-                spreadsheetId,
-                $"{KeyColumn.Letter}:{TimeZoneColumn.Letter}"
-            );
-            request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
-
-            await request.ExecuteAsync();
+            await sheetsService.Spreadsheets.BatchUpdate(requests, spreadsheetId).ExecuteAsync();
         }
 
         public async Task EditEventAsync(
@@ -185,22 +180,7 @@ namespace DiscordBot.DataAccess
 
             var requestParameters = new BatchUpdateSpreadsheetRequest()
             {
-                Requests = new[]
-                {
-                    new Request()
-                    {
-                        DeleteDimension = new DeleteDimensionRequest()
-                        {
-                            Range = new DimensionRange()
-                            {
-                                SheetId = metadataSheetId,
-                                Dimension = "ROWS",
-                                StartIndex = rowNumber - 1,
-                                EndIndex = rowNumber
-                            }
-                        }
-                    }
-                }
+                Requests = new[] { SheetsServiceRequestsHelper.RemoveEvent(metadataSheetId, rowNumber) }
             };
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
