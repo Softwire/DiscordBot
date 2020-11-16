@@ -164,7 +164,7 @@ namespace DiscordBot.Commands
                 );
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - here are the events.", embed: eventsListEmbed);
+            await context.RespondAsync($"{context.Member.Mention} - here are all created events.", embed: eventsListEmbed);
         }
 
         public async Task EditEvent(CommandContext context, InteractivityModule interactivity)
