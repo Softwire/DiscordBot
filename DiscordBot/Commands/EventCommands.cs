@@ -36,11 +36,12 @@ namespace DiscordBot.Commands
             "yes",
             "no"
         };
-        public IEventsSheetsService EventsSheetsService { private get; set; }
+
+        private readonly IEventsSheetsService eventsSheetsService;
 
         public EventCommands(IEventsSheetsService eventsSheetsService)
         {
-            EventsSheetsService = eventsSheetsService;
+            this.eventsSheetsService = eventsSheetsService;
         }
 
         [Command("event")]
@@ -111,7 +112,7 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await EventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime.Value.DateTime);
+            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime.Value.DateTime);
 
             var eventEmbed = new DiscordEmbedBuilder
             {
@@ -150,7 +151,7 @@ namespace DiscordBot.Commands
 
             try
             {
-                await EventsSheetsService
+                await eventsSheetsService
                     .RemoveEventAsync(eventKey.Value);
                 await context.RespondAsync($"{context.Member.Mention} - poof! It's gone.");
             }
@@ -180,7 +181,7 @@ namespace DiscordBot.Commands
   
         public async Task ListEvents(CommandContext context)
         {
-            var eventsList = await EventsSheetsService.ListEventsAsync();
+            var eventsList = await eventsSheetsService.ListEventsAsync();
 
             var eventsListEmbed = new DiscordEmbedBuilder
             {
@@ -252,14 +253,14 @@ namespace DiscordBot.Commands
 
         private async Task SendSignupMessage(CommandContext context, int eventKey)
         { 
-            var discordEvent = await EventsSheetsService.GetEventAsync(eventKey);
+            var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
 
-            var signupsByResponse = await EventsSheetsService.GetSignupsByResponseAsync(eventKey);
+            var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
 
             var signupEmbed = GetSignupEmbed(discordEvent, signupsByResponse);
 
             var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
-            await EventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
+            await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
 
             foreach (var response in signupsByResponse.Keys)
             {
@@ -383,7 +384,7 @@ namespace DiscordBot.Commands
         {
             try
             {
-                await EventsSheetsService.EditEventAsync(eventKey, newDescription, newName, newTime);
+                await eventsSheetsService.EditEventAsync(eventKey, newDescription, newName, newTime);
                 await context.RespondAsync($"{context.Member.Mention} - changes saved!", embed: eventEmbed);
             }
             catch (EventNotFoundException)
@@ -396,7 +397,7 @@ namespace DiscordBot.Commands
         {
             try
             {
-                var discordEvent = await EventsSheetsService.GetEventAsync(eventKey);
+                var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
 
                 return new DiscordEmbedBuilder
                 {
