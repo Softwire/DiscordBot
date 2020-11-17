@@ -186,7 +186,7 @@ namespace DiscordBot.DataAccess
             {
                 Requests = new[]
                 {
-                    SheetsServiceRequestsHelper.RemoveEventMetadata(metadataSheetId, rowNumber),
+                    SheetsServiceRequestsHelper.RemoveRow(metadataSheetId, rowNumber),
                     SheetsServiceRequestsHelper.RemoveEventResponses(responseSheetId)
                 }
             };
@@ -276,11 +276,28 @@ namespace DiscordBot.DataAccess
             }
         }
 
-#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
         public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
+            var rowNumber = await GetResponseRowNumberAsync(eventKey, userId);
+
+            // If the user has already cleared their responses/never signed up in the first place
+            if (rowNumber == null)
+            {
+                return;
+            }
+
+            var responseSheetId = await GetSheetIdFromTitleAsync(eventKey.ToString());
+
+            var requestParameters = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = new[] { SheetsServiceRequestsHelper.RemoveRow(responseSheetId, rowNumber.Value) }
+            };
+
+            var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
+            await request.ExecuteAsync();
         }
 
+#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
         public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId)
         {
             return new Dictionary<ulong, IEnumerable<EventResponse>>

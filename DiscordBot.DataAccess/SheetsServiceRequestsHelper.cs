@@ -85,7 +85,7 @@ namespace DiscordBot.DataAccess
             return new Request() { AppendCells = addResponseColumns };
         }
 
-        public static Request RemoveEventMetadata(int metadataSheetId, int rowNumber)
+        public static Request RemoveRow(int sheetId, int rowNumber)
         {
             return new Request()
             {
@@ -93,7 +93,7 @@ namespace DiscordBot.DataAccess
                 {
                     Range = new DimensionRange()
                     {
-                        SheetId = metadataSheetId,
+                        SheetId = sheetId,
                         Dimension = "ROWS",
                         StartIndex = rowNumber - 1,
                         EndIndex = rowNumber
