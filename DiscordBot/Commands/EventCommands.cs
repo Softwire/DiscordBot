@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.DataAccess;
+using DiscordBot.DataAccess.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -249,17 +251,34 @@ namespace DiscordBot.Commands
             var eventsSheetsService = context.Dependencies.GetDependency<IEventsSheetsService>();
             var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
 
+            var userResponseDictionary = await eventsSheetsService.GetSignupsByUserAsync(eventKey);
+            var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
+
+            var signupEmbed = GetSignupEmbed(discordEvent, userResponseDictionary, optionsList);
+
+            var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
+            await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
+
+            foreach (var response in optionsList.Keys)
+            {
+                await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
+            }
+        }
+
+        private static DiscordEmbedBuilder GetSignupEmbed(
+            DiscordEvent discordEvent,
+            Dictionary<ulong, IEnumerable<EventResponse>> userResponseDictionary,
+            Dictionary<EventResponse, IEnumerable<ulong>> optionsList)
+        {
             var signupEmbed = new DiscordEmbedBuilder
             {
                 Title = $"{discordEvent.Name} - {discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}",
                 Description = discordEvent.Description,
                 Footer = new DiscordEmbedBuilder.EmbedFooter
                 {
-                    Text = $"event key: {eventKey}"
+                    Text = $"event key: {discordEvent.Key}"
                 }
             };
-
-            var userResponseDictionary = await eventsSheetsService.GetSignupsByUserAsync(eventKey);
 
             var usersField = string.Join(
                 "\n",
@@ -275,7 +294,6 @@ namespace DiscordBot.Commands
 
             signupEmbed.AddField("Response(s)", responsesField, true);
 
-            var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
             var optionsField = string.Join(
                 "\n",
                 optionsList.Select(response => $"{response.Key.Emoji} - {response.Key.ResponseName}")
@@ -283,13 +301,7 @@ namespace DiscordBot.Commands
 
             signupEmbed.AddField("Response options", optionsField);
 
-            var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
-            await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
-
-            foreach (var response in optionsList.Keys)
-            {
-                await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
-            }
+            return signupEmbed;
         }
 
         private static async Task EditEventField(
