@@ -297,25 +297,83 @@ namespace DiscordBot.DataAccess
             await request.ExecuteAsync();
         }
 
-#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
         public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId)
         {
-            return new Dictionary<ulong, IEnumerable<EventResponse>>
+            var request = sheetsService.Spreadsheets.Values.Get(
+                spreadsheetId,
+                $"{eventId}"
+            );
+            request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var response = await request.ExecuteAsync();
+
+            if (response == null || response.Values.Count < 2)
             {
-                { 0UL, new[] { new EventResponse(":white_check_mark:", "Yes") } },
-                { 1UL, new[] { new EventResponse(":grey_question:", "Maybe") } }
-            };
+                throw new EventInitialisationException("Sign up sheet is empty");
+            }
+
+            var responseColumns = ParseResponseHeaders(response.Values);
+
+            return response.Values
+                .Skip(2)
+                .Select(row =>
+                {
+                    var user = ulong.Parse((string) row[0]);
+                    var responseList =
+                        row.Skip(1) // Skip title column
+                            .Zip(responseColumns)
+                            .Where<(object cell, EventResponse response)>(
+                                pair => pair.cell.ToString() == "1"
+                            )
+                            .Select(pair => pair.response);
+                    return (user, responseList);
+                })
+                .ToDictionary(
+                    entry => entry.user,
+                    entry => entry.responseList
+                );
         }
 
         public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
         {
-            return new Dictionary<EventResponse, IEnumerable<ulong>>
+            var request = sheetsService.Spreadsheets.Values.Get(
+                spreadsheetId,
+                $"{eventId}"
+            );
+            request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var response = await request.ExecuteAsync();
+
+            if (response == null || response.Values.Count < 2)
             {
-                { new EventResponse(":white_check_mark:", "Yes"), new[] { 0UL } },
-                { new EventResponse(":grey_question:", "Maybe"), new[] { 1UL } }
-            };
+                throw new EventInitialisationException("Sign up sheet is empty");
+            }
+
+            var responseColumns = ParseResponseHeaders(response.Values).ToList();
+
+            var result = responseColumns.ToDictionary(
+                eventResponse => eventResponse,
+                eventResponse => new List<ulong>()
+            );
+
+            response.Values.Skip(2)
+                .ToList().
+                ForEach(row =>
+            {
+                var user = ulong.Parse((string)row[0]);
+
+                row.Skip(1)  // Skip title column
+                    .Zip(responseColumns)
+                    .Where<(object cell, EventResponse response)>(pair =>
+                        (string)pair.cell == "1"
+                    )
+                    .ToList()
+                    .ForEach(pair => result[pair.response].Add(user));
+            });
+
+            return result.ToDictionary(
+                entry => entry.Key,
+                entry => (IEnumerable<ulong>) entry.Value
+            );
         }
-#pragma warning restore 1998
 
         private static ServiceAccountCredential GetCredential()
         {
@@ -486,12 +544,7 @@ namespace DiscordBot.DataAccess
                     throw new EventsSheetsInitialisationException($"Event sheet {eventKey} is empty");
                 }
 
-                return sheetsResponse.Values[0]
-                    .Zip(sheetsResponse.Values[1])
-                    .Skip(1) // Skip titles column
-                    .Select<(object emoji, object name), EventResponse>(response =>
-                        new EventResponse((string)response.emoji, (string)response.name)
-                    );
+                return ParseResponseHeaders(sheetsResponse.Values);
             }
             catch (GoogleApiException)
             {
@@ -575,6 +628,16 @@ namespace DiscordBot.DataAccess
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
             await request.ExecuteAsync();
+        }
+
+        private IEnumerable<EventResponse> ParseResponseHeaders(IList<IList<object>> sheetsResponse)
+        {
+            return sheetsResponse[0]
+                .Zip(sheetsResponse[1])
+                .Skip(1) // Skip titles column
+                .Select<(object emoji, object name), EventResponse>(response =>
+                    new EventResponse((string) response.emoji, (string) response.name)
+                );
         }
     }
 }
