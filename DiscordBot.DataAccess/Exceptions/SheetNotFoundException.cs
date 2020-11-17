@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DiscordBot.DataAccess
+namespace DiscordBot.DataAccess.Exceptions
 {
     class SheetNotFoundException : Exception
     {

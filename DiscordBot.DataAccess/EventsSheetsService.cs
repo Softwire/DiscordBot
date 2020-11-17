@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using DiscordBot.DataAccess.Exceptions;
 using Google;
 using DiscordBot.DataAccess.Models;
 using Google.Apis.Auth.OAuth2;
