@@ -251,10 +251,9 @@ namespace DiscordBot.Commands
             var eventsSheetsService = context.Dependencies.GetDependency<IEventsSheetsService>();
             var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
 
-            var userResponseDictionary = await eventsSheetsService.GetSignupsByUserAsync(eventKey);
             var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
 
-            var signupEmbed = GetSignupEmbed(discordEvent, userResponseDictionary, optionsList);
+            var signupEmbed = GetSignupEmbed(discordEvent, optionsList);
 
             var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
             await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
@@ -265,11 +264,33 @@ namespace DiscordBot.Commands
             }
         }
 
-        private static DiscordEmbedBuilder GetSignupEmbed(
-            DiscordEvent discordEvent,
-            Dictionary<ulong, IEnumerable<EventResponse>> userResponseDictionary,
+        private static Dictionary<ulong, IEnumerable<EventResponse>> GetResponsesByUser(
             Dictionary<EventResponse, IEnumerable<ulong>> optionsList)
         {
+            var userResponseDictionary = new Dictionary<ulong, IEnumerable<EventResponse>>();
+
+            var userIds = optionsList.Values
+                .SelectMany(x => x)
+                .Distinct();
+
+            foreach (var userId in userIds)
+            {
+                var userResponses = optionsList
+                    .Where(x => x.Value.Contains(userId))
+                    .Select(x => x.Key);
+
+                userResponseDictionary.Add(userId, userResponses);
+            }
+
+            return userResponseDictionary;
+        }
+
+        private static DiscordEmbedBuilder GetSignupEmbed(
+            DiscordEvent discordEvent,
+            Dictionary<EventResponse, IEnumerable<ulong>> optionsList)
+        {
+            var userResponseDictionary = GetResponsesByUser(optionsList);
+
             var signupEmbed = new DiscordEmbedBuilder
             {
                 Title = $"{discordEvent.Name} - {discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}",
