@@ -167,7 +167,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Update(
                 cellValue,
                 spreadsheetId,
-                $"{MetadataSheetName}!{TimeZoneColumn.Letter}{rowNumber}"
+                $"{MetadataSheetName}!{MessageIdColumn.Letter}{rowNumber}"
             );
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
