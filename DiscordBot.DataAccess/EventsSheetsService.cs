@@ -290,11 +290,72 @@ namespace DiscordBot.DataAccess
             }
         }
 
-#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
         public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
         {
+            var responseRowTask = GetResponseRowNumber(eventKey, userId);
+            var responseColumnsTask = GetEventResponseOptionsAsync(eventKey);
+
+            await Task.WhenAll(responseRowTask, responseColumnsTask);
+            var responseRow = await responseRowTask;
+            var responseColumns = await responseColumnsTask;
+
+            if (responseRow == null)
+            {
+                await AddResponseForNewUserAsync(eventKey, userId, responseEmoji, responseColumns);
+            }
+            else
+            {
+                await AddResponseForExistingUserAsync(eventKey, responseRow.Value, responseEmoji, responseColumns);
+            }
         }
 
+        private async Task AddResponseForNewUserAsync(
+            int eventKey,
+            ulong userId,
+            string responseEmoji,
+            IEnumerable<EventResponse> responseColumns
+        )
+        {
+            var newRow = responseColumns
+                .Select(response => response.Emoji == responseEmoji ? 1 : 0)
+                .Cast<object>()
+                .Prepend(userId);
+
+            var values = new ValueRange()
+            {
+                Values = new IList<object>[]
+                {
+                    newRow.ToList()
+                }
+            };
+
+            var request = sheetsService.Spreadsheets.Values.Append(values, spreadsheetId, $"{eventKey}");
+            request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
+
+            await request.ExecuteAsync();
+        }
+
+        private async Task AddResponseForExistingUserAsync(
+            int eventKey,
+            int responseRow,
+            string responseEmoji,
+            IEnumerable<EventResponse> responseColumns
+        )
+        {
+            var index = responseColumns.ToList().FindIndex(responseOption => responseOption.Emoji == responseEmoji);
+
+            // Plus 1 to correct for the title column that is skipped over and not in the response list.
+            var updateColumn = new SheetsColumn(index + 1);
+            var range = $"{eventKey}!{updateColumn.Letter}{responseRow}";
+
+            var cellValue = MakeCellUpdate(range, 1);
+            var request = sheetsService.Spreadsheets.Values.Update(cellValue, spreadsheetId, range);
+            request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
+
+            await request.ExecuteAsync();
+        }
+
+#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
         public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
         }
