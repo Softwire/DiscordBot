@@ -251,45 +251,45 @@ namespace DiscordBot.Commands
             var eventsSheetsService = context.Dependencies.GetDependency<IEventsSheetsService>();
             var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
 
-            var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
+            var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
 
-            var signupEmbed = GetSignupEmbed(discordEvent, optionsList);
+            var signupEmbed = GetSignupEmbed(discordEvent, signupsByResponse);
 
             var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
             await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
 
-            foreach (var response in optionsList.Keys)
+            foreach (var response in signupsByResponse.Keys)
             {
                 await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
             }
         }
 
         private static Dictionary<ulong, IEnumerable<EventResponse>> GetResponsesByUser(
-            Dictionary<EventResponse, IEnumerable<ulong>> optionsList)
+            Dictionary<EventResponse, IEnumerable<ulong>> signupsByResponse)
         {
-            var userResponseDictionary = new Dictionary<ulong, IEnumerable<EventResponse>>();
+            var signupsByUser = new Dictionary<ulong, IEnumerable<EventResponse>>();
 
-            var userIds = optionsList.Values
-                .SelectMany(x => x)
+            var userIds = signupsByResponse.Values
+                .SelectMany(responseSignups => responseSignups)
                 .Distinct();
 
             foreach (var userId in userIds)
             {
-                var userResponses = optionsList
-                    .Where(x => x.Value.Contains(userId))
-                    .Select(x => x.Key);
+                var userResponses = signupsByResponse
+                    .Where(responseSignups => responseSignups.Value.Contains(userId))
+                    .Select(responseSignups => responseSignups.Key);
 
-                userResponseDictionary.Add(userId, userResponses);
+                signupsByUser.Add(userId, userResponses);
             }
 
-            return userResponseDictionary;
+            return signupsByUser;
         }
 
         private static DiscordEmbedBuilder GetSignupEmbed(
             DiscordEvent discordEvent,
-            Dictionary<EventResponse, IEnumerable<ulong>> optionsList)
+            Dictionary<EventResponse, IEnumerable<ulong>> signupsByResponse)
         {
-            var userResponseDictionary = GetResponsesByUser(optionsList);
+            var userResponseDictionary = GetResponsesByUser(signupsByResponse);
 
             var signupEmbed = new DiscordEmbedBuilder
             {
@@ -317,7 +317,7 @@ namespace DiscordBot.Commands
 
             var optionsField = string.Join(
                 "\n",
-                optionsList.Select(response => $"{response.Key.Emoji} - {response.Key.ResponseName}")
+                signupsByResponse.Select(response => $"{response.Key.Emoji} - {response.Key.ResponseName}")
             );
 
             signupEmbed.AddField("Response options", optionsField);
