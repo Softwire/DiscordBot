@@ -594,7 +594,7 @@ namespace DiscordBot.DataAccess
             var newRow = responseColumns
                 .Select(response => response.Emoji == responseEmoji ? 1 : 0)
                 .Cast<object>()
-                .Prepend(userId);
+                .Prepend(userId.ToString());
 
             var values = new ValueRange()
             {
