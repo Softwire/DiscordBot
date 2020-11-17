@@ -160,7 +160,7 @@ namespace DiscordBot.DataAccess
             {
                 Values = new IList<object>[]
                 {
-                    new object[] { messageId }
+                    new object[] { messageId.ToString() }
                 }
             };
 
