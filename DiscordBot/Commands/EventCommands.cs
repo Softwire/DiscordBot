@@ -292,8 +292,6 @@ namespace DiscordBot.Commands
             }
         }
 
-
-
         private static async Task EditEventField(
             CommandContext context,
             InteractivityModule interactivity,
