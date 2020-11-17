@@ -5,6 +5,8 @@ using DiscordBot.DataAccess;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Interactivity;
+using DSharpPlus.Interactivity.Extensions;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace DiscordBot
 {
@@ -20,19 +22,17 @@ namespace DiscordBot
             var discord = new DiscordClient(new DiscordConfiguration
             {
                 Token = Environment.GetEnvironmentVariable("RELEASE_BOT_TOKEN"),
-                TokenType = TokenType.Bot,
-                UseInternalLogHandler = true,
-                LogLevel = LogLevel.Debug
+                TokenType = TokenType.Bot
             });
 
-            using var builder = new DependencyCollectionBuilder();
-            builder.AddInstance<IEventsSheetsService>(new EventsSheetsService());
-            var dependencies = builder.Build();
-            
+            var services = new ServiceCollection()
+                .AddSingleton<IEventsSheetsService>(new EventsSheetsService())
+                .BuildServiceProvider();
+
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
             {
-                StringPrefix = "?",
-                Dependencies = dependencies
+                StringPrefixes = new [] { "?" },
+                Services = services
             });
 
             commands.RegisterCommands<EventCommands>();
