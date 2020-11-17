@@ -33,7 +33,6 @@ namespace DiscordBot.DataAccess
         Task<DiscordEvent> GetEventAsync(int eventKey);
         Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
-        Task<IEnumerable<EventResponse>> GetEventResponseOptionsAsync(int eventKey);
 
         Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji);
         Task ClearResponsesForUserAsync(int eventKey, ulong userId);
@@ -258,41 +257,9 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public async Task<IEnumerable<EventResponse>> GetEventResponseOptionsAsync(int eventKey)
-        {
-            try
-            {
-                var request = sheetsService.Spreadsheets.Values.Get(
-                    spreadsheetId,
-                    $"{eventKey}!1:2"
-                );
-                request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
-
-                var sheetsResponse = await request.ExecuteAsync();
-
-                if (sheetsResponse == null || sheetsResponse.Values.Count < 2)
-                {
-                    throw new EventsSheetsInitialisationException($"Event sheet {eventKey} is empty");
-                }
-
-                return sheetsResponse.Values[0]
-                    .Zip(sheetsResponse.Values[1])
-                    .Skip(1) // Skip titles column
-                    .Select<(object emoji, object name), EventResponse>(response =>
-                        new EventResponse((string)response.emoji, (string)response.name)
-                    );
-            }
-            catch (GoogleApiException)
-            {
-                throw new EventInitialisationException(
-                    $"Could not find event responses for event {eventKey}. Has it been published yet?"
-                );
-            }
-        }
-
         public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
         {
-            var responseRowTask = GetResponseRowNumber(eventKey, userId);
+            var responseRowTask = GetResponseRowNumberAsync(eventKey, userId);
             var responseColumnsTask = GetEventResponseOptionsAsync(eventKey);
 
             await Task.WhenAll(responseRowTask, responseColumnsTask);
@@ -469,7 +436,7 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        private async Task<int?> GetRowNumberFromKey(
+        private async Task<int?> GetRowNumberFromKeyAsync(
             string sheetName,
             SheetsColumn keyColumn,
             int numberOfHeaderRows,
@@ -507,7 +474,7 @@ namespace DiscordBot.DataAccess
 
         private async Task<int> GetEventRowNumber(int eventKey)
         {
-            var rowNumber = await GetRowNumberFromKey(MetadataSheetName, KeyColumn, 1, (ulong) eventKey);
+            var rowNumber = await GetRowNumberFromKeyAsync(MetadataSheetName, KeyColumn, 1, (ulong) eventKey);
             if (rowNumber == null)
             {
                 throw new EventNotFoundException($"Event key {eventKey} not recognised");
@@ -516,17 +483,49 @@ namespace DiscordBot.DataAccess
             return rowNumber.Value;
         }
 
-        private async Task<int?> GetResponseRowNumber(int eventKey, ulong userKey)
+        private async Task<int?> GetResponseRowNumberAsync(int eventKey, ulong userKey)
         {
             try
             {
-                return await GetRowNumberFromKey(eventKey.ToString(), UserIdColumn, 2, userKey);
+                return await GetRowNumberFromKeyAsync(eventKey.ToString(), UserIdColumn, 2, userKey);
             }
             catch (GoogleApiException exception)
             {
                 throw new EventInitialisationException(
                     $"Sign ups have not been released for event {eventKey}",
                     exception
+                );
+            }
+        }
+
+        private async Task<IEnumerable<EventResponse>> GetEventResponseOptionsAsync(int eventKey)
+        {
+            try
+            {
+                var request = sheetsService.Spreadsheets.Values.Get(
+                    spreadsheetId,
+                    $"{eventKey}!1:2"
+                );
+                request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+
+                var sheetsResponse = await request.ExecuteAsync();
+
+                if (sheetsResponse == null || sheetsResponse.Values.Count < 2)
+                {
+                    throw new EventsSheetsInitialisationException($"Event sheet {eventKey} is empty");
+                }
+
+                return sheetsResponse.Values[0]
+                    .Zip(sheetsResponse.Values[1])
+                    .Skip(1) // Skip titles column
+                    .Select<(object emoji, object name), EventResponse>(response =>
+                        new EventResponse((string)response.emoji, (string)response.name)
+                    );
+            }
+            catch (GoogleApiException)
+            {
+                throw new EventInitialisationException(
+                    $"Could not find event responses for event {eventKey}. Has it been published yet?"
                 );
             }
         }
