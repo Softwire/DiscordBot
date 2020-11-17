@@ -261,19 +261,26 @@ namespace DiscordBot.Commands
 
             var userResponseDictionary = await eventsSheetsService.GetSignupsByUserAsync(eventKey);
 
-            var usersField = string.Join("\n", userResponseDictionary.Select(
-                response => $"<@{response.Key}>"));
+            var usersField = string.Join(
+                "\n",
+                userResponseDictionary.Select(response => $"<@{response.Key}>")
+            );
+
             signupEmbed.AddField("Participants", usersField, true);
 
             var responsesList = userResponseDictionary.Select(
-                response => string.Join(" ", response.Value));
+                response => string.Join(" ", response.Value)
+            );
             var responsesField = string.Join("\n", responsesList);
-            signupEmbed.AddField("Responses", responsesField, true);
+
+            signupEmbed.AddField("Response(s)", responsesField, true);
 
             var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
             var optionsField = string.Join(
-                "\n", optionsList.Select(response =>
-                    $"{response.Key.Emoji} - {response.Key.ResponseName}"));
+                "\n",
+                optionsList.Select(response => $"{response.Key.Emoji} - {response.Key.ResponseName}")
+            );
+
             signupEmbed.AddField("Response options", optionsField);
 
             var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
@@ -284,6 +291,8 @@ namespace DiscordBot.Commands
                 await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
             }
         }
+
+
 
         private static async Task EditEventField(
             CommandContext context,
