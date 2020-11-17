@@ -60,6 +60,8 @@ namespace DiscordBot.DataAccess
         private readonly SheetsColumn TimeZoneColumn = new SheetsColumn(4);
         private readonly SheetsColumn MessageIdColumn = new SheetsColumn(5);
 
+        private readonly SheetsColumn UserIdColumn = new SheetsColumn(0);
+
         public EventsSheetsService()
         {
             var credential = GetCredential();
@@ -406,39 +408,63 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        private async Task<int> GetEventRowNumber(int eventKey)
+        private async Task<int?> GetRowNumberFromKey(
+            string sheetName,
+            SheetsColumn keyColumn,
+            int numberOfHeaderRows,
+            ulong key
+        )
         {
             try
             {
                 var request = sheetsService.Spreadsheets.Values.Get(
                     spreadsheetId,
-                    $"{MetadataSheetName}!{KeyColumn.Letter}:{KeyColumn.Letter}"
+                    $"{sheetName}!{keyColumn.Letter}:{keyColumn.Letter}"
                 );
                 var response = await request.ExecuteAsync();
 
-                if (response == null || response.Values.Count < 2)
+                if (response == null || response.Values.Count < numberOfHeaderRows)
                 {
-                    throw new EventNotFoundException($"Event key {eventKey} not recognised");
+                    throw new EventNotFoundException($"Event key {key} not recognised");
                 }
 
                 var rowNumber = response.Values
-                    .Skip(1)  // Skip header row
+                    .Skip(numberOfHeaderRows)
                     .Select((values, index) => (values, index))
-                    .First(row => int.Parse((string)row.values[KeyColumn.Index]) == eventKey);
+                    .First(row => ulong.Parse((string)row.values[keyColumn.Index]) == key);
 
-                // Extract row number, plus 2 to correct for two this:
+                // Extract row number, plus a correction factor:
+                // Correct for skipping the header
                 // These lists are 0 indexed, but Sheets index from 1
-                // Correct for skipping row 1, the header
-                return rowNumber.index + 2;
+                return rowNumber.index + numberOfHeaderRows + 1;
             }
             catch (InvalidOperationException)
             {
+                return null;
+            }
+        }
+
+        private async Task<int> GetEventRowNumber(int eventKey)
+        {
+            var rowNumber = await GetRowNumberFromKey(MetadataSheetName, KeyColumn, 1, (ulong) eventKey);
+            if (rowNumber == null)
+            {
                 throw new EventNotFoundException($"Event key {eventKey} not recognised");
+            }
+
+            return rowNumber.Value;
+        }
+
+        private async Task<int?> GetResponseRowNumber(int eventKey, ulong userKey)
+        {
+            try
+            {
+                return await GetRowNumberFromKey(eventKey.ToString(), UserIdColumn, 2, userKey);
             }
             catch (GoogleApiException exception)
             {
-                throw new EventsSheetsInitialisationException(
-                    "Events Sheets Service couldn't initialise",
+                throw new EventInitialisationException(
+                    $"Sign ups have not been released for event {eventKey}",
                     exception
                 );
             }
