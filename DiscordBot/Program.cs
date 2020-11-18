@@ -37,6 +37,7 @@ namespace DiscordBot
 
             var services = new ServiceCollection()
                 .AddSingleton<IEventsSheetsService>(eventsSheetsService)
+                .AddSingleton<EventHelper>(eventHelper)
                 .BuildServiceProvider();
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration

@@ -7,7 +7,6 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
-using static DiscordBot.Commands.EventHelper;
 
 namespace DiscordBot.Commands
 {
@@ -39,10 +38,12 @@ namespace DiscordBot.Commands
         };
 
         private readonly IEventsSheetsService eventsSheetsService;
+        private readonly EventHelper eventHelper;
 
-        public EventCommands(IEventsSheetsService eventsSheetsService)
+        public EventCommands(IEventsSheetsService eventsSheetsService, EventHelper eventHelper)
         {
             this.eventsSheetsService = eventsSheetsService;
+            this.eventHelper = eventHelper;
         }
 
         [GroupCommand]
@@ -277,7 +278,7 @@ namespace DiscordBot.Commands
 
             var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
 
-            var signupEmbed = GetSignupEmbed(discordEvent, signupsByResponse);
+            var signupEmbed = eventHelper.GetSignupEmbed(discordEvent, signupsByResponse);
 
             var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
             await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
