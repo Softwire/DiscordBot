@@ -15,8 +15,8 @@ It links up with Google Sheets to generate an at-a-glance list of all the events
 ### Getting Google Sheets credentials
 
 1. Talk to someone on the team (currently Benji) who can give you Google sheets credentials, and ask for them.
-They will be given to you on [Zoho](https://vault.zoho.com/online/main), so make sure someone on the team raises a helpdesk ticket
-to add you to the "Morale Event Discord Bot" chamber
+They will be given to you on [Zoho](https://vault.zoho.com/online/main), so raise a HYP request
+to get access to the "Morale Event Discord Bot" chamber
 
 ### Running the bot locally
 
@@ -34,9 +34,13 @@ GOOGLE_PROJECT_ID
 GOOGLE_PRIVATE_KEY_ID
 GOOGLE_PRIVATE_KEY
 ```
+
+There is a template launchSettings.json.copy file in "Properties/ServiceDependencies/", all you need to do is remove the ".copy"
+and then add the values necessary
+
 2. With your bot selected in Discord for developers, go to "Bot" on the left
 ![Bot settings](readme-pics/bot-settings.png)
-3. Copy the token on this page and pass it into your run configuration as `RELEASE_BOT_TOKEN`
+3. Copy the token on this page and pass it into your launchSettings.json as `RELEASE_BOT_TOKEN`
 4. Pass in the `GOOGLE_SHEET_ID` and the four relevant fields in the JSON from Zoho
 5. Have someone who knows what they're doing add your new test bot into the Discord server
 6. Run!
