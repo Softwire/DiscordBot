@@ -8,11 +8,12 @@ using DiscordBot.DataAccess.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
-using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 
 namespace DiscordBot.Commands
 {
+    [Group("event")]
+    [RequireRoles(RoleCheckMode.All, "Bot Whisperer")]
     internal class EventCommands : BaseCommandModule
     {
         private static readonly string[] EventOperations =
@@ -45,12 +46,10 @@ namespace DiscordBot.Commands
             this.eventsSheetsService = eventsSheetsService;
         }
 
-        [Command("event")]
+        [GroupCommand]
         [Description("Initiates the wizard for event-related actions")]
         public async Task Event(CommandContext context)
         {
-            var interactivity = context.Client.GetInteractivity();
-
             await context.RespondAsync(
                 $"{context.Member.Mention} - choose one of the actions below or answer ``stop`` to cancel. (time out in 30s)\n" +
                 "``create`` - create new event.\n" +
@@ -61,7 +60,7 @@ namespace DiscordBot.Commands
                 "``start`` - open signups for event."
             );
 
-            var eventOperation = await GetUserResponse(context, interactivity, EventOperations);
+            var eventOperation = await GetUserResponse(context, EventOperations);
             if (eventOperation == null)
             {
                 return;
@@ -70,50 +69,69 @@ namespace DiscordBot.Commands
             switch (eventOperation)
             {
                 case "create":
-                    await CreateEvent(context, interactivity);
+                    await CreateEvent(context);
                     break;
                 case "list":
                     await ListEvents(context);
                     break;
                 case "remove":
-                    await RemoveEvent(context, interactivity);
+                    await RemoveEvent(context);
                     break;
                 case "show":
-                    await ShowEvent(context, interactivity);
+                    await ShowEvent(context);
                     break;
                 case "edit":
-                    await EditEvent(context, interactivity);
+                    await EditEvent(context);
                     break;
                 case "start":
-                    await CreateSignupSheet(context, interactivity);
+                    await CreateSignupSheet(context);
                     break;
             }
         }
 
-        public async Task CreateEvent(CommandContext context, InteractivityExtension interactivity)
+        [Command("create")]
+        public async Task CreateEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the name of the event?");
-            var eventName = await GetUserResponse(context, interactivity);
+            var eventName = await GetUserResponse(context);
             if (eventName == null)
             {
                 return;
             }
-            
+
+            await CreateEvent(context, eventName);
+        }
+
+        [Command("create")]
+        public async Task CreateEvent(CommandContext context, string eventName)
+        {
             await context.RespondAsync($"{context.Member.Mention} - give an event description.");
-            var eventDescription = await GetUserResponse(context, interactivity);
+            var eventDescription = await GetUserResponse(context);
             if (eventDescription == null)
             {
                 return;
             }
 
+            await CreateEvent(context, eventName, eventDescription);
+        }
+
+        [Command("create")]
+        public async Task CreateEvent(CommandContext context, string eventName, string eventDescription)
+        {
             await context.RespondAsync($"{context.Member.Mention} - what time is your event?");
-            var eventTime = await GetUserTimeResponse(context, interactivity);
+            var eventTime = await GetUserTimeResponse(context);
             if (eventTime == null)
             {
                 return;
             }
 
-            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime.Value.DateTime);
+            await CreateEvent(context, eventName, eventDescription, eventTime.Value.DateTime);
+        }
+
+        [Command("create")] 
+        public async Task CreateEvent(CommandContext context, string eventName, string eventDescription, DateTime eventTime)
+        {
+            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime);
 
             var eventEmbed = new DiscordEmbedBuilder
             {
@@ -126,10 +144,11 @@ namespace DiscordBot.Commands
             await context.RespondAsync(embed: eventEmbed);
         }
 
-        public async Task RemoveEvent(CommandContext context, InteractivityExtension interactivity)
+        [Command("remove")]
+        public async Task RemoveEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
-            var eventKey = await GetUserIntResponse(context, interactivity);
+            var eventKey = await GetUserIntResponse(context);
             if (eventKey == null)
             {
                 return;
@@ -144,7 +163,7 @@ namespace DiscordBot.Commands
             await context.RespondAsync(
                 $"{context.Member.Mention} - is this the event you want to delete? (``yes``/``no``)",
                 embed: discordEmbed);
-            var confirmationResponse = await GetUserConfirmation(context, interactivity);
+            var confirmationResponse = await GetUserConfirmation(context);
             if (confirmationResponse == null || confirmationResponse == false)
             {
                 return;
@@ -162,10 +181,11 @@ namespace DiscordBot.Commands
             }
         }
 
-        public async Task ShowEvent(CommandContext context, InteractivityExtension interactivity)
+        [Command("show")]
+        public async Task ShowEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
-            var eventKey = await GetUserIntResponse(context, interactivity);
+            var eventKey = await GetUserIntResponse(context);
             if (eventKey == null)
             {
                 return;
@@ -200,10 +220,10 @@ namespace DiscordBot.Commands
             await context.RespondAsync($"{context.Member.Mention} - here are all created events.", embed: eventsListEmbed);
         }
 
-        public async Task EditEvent(CommandContext context, InteractivityExtension interactivity)
+        public async Task EditEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
-            var eventKey = await GetUserIntResponse(context, interactivity);
+            var eventKey = await GetUserIntResponse(context);
             if (eventKey == null)
             {
                 return;
@@ -218,19 +238,19 @@ namespace DiscordBot.Commands
             await context.RespondAsync($"{context.Member.Mention}", embed: eventEmbed);
             await context.RespondAsync(
                 $"{context.Member.Mention} - what field do you want to edit? (``name``, ``description``, ``time``)\n");
-            var editField = await GetUserResponse(context, interactivity, EventFields);
+            var editField = await GetUserResponse(context, EventFields);
             if (editField == null)
             {
                 return;
             }
 
-            await EditEventField(context, interactivity, eventKey.Value, editField, eventEmbed);
+            await EditEventField(context, eventKey.Value, editField, eventEmbed);
         }
 
-        private async Task CreateSignupSheet(CommandContext context, InteractivityExtension interactivity)
+        private async Task CreateSignupSheet(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
-            var eventKey = await GetUserIntResponse(context, interactivity);
+            var eventKey = await GetUserIntResponse(context);
             if (eventKey == null)
             {
                 return;
@@ -243,7 +263,7 @@ namespace DiscordBot.Commands
             }
 
             await context.RespondAsync($"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)", embed: eventEmbed);
-            var confirmationResponse = await GetUserConfirmation(context, interactivity);
+            var confirmationResponse = await GetUserConfirmation(context);
             if (confirmationResponse == null || confirmationResponse == false)
             {
                 return;
@@ -332,7 +352,6 @@ namespace DiscordBot.Commands
 
         private async Task EditEventField(
             CommandContext context,
-            InteractivityExtension interactivity,
             int eventKey,
             string editField,
             DiscordEmbedBuilder eventEmbed)
@@ -341,7 +360,7 @@ namespace DiscordBot.Commands
             {
                 case "name":
                     await context.RespondAsync($"{context.Member.Mention} - enter the new event name.");
-                    var newName = await GetUserResponse(context, interactivity);
+                    var newName = await GetUserResponse(context);
                     if (newName == null)
                     {
                         return;
@@ -352,7 +371,7 @@ namespace DiscordBot.Commands
                     break;
                 case "description":
                     await context.RespondAsync($"{context.Member.Mention} - enter the new description.");
-                    var newDescription = await GetUserResponse(context, interactivity);
+                    var newDescription = await GetUserResponse(context);
                     if (newDescription == null)
                     {
                         return;
@@ -363,7 +382,7 @@ namespace DiscordBot.Commands
                     break;
                 case "time":
                     await context.RespondAsync($"{context.Member.Mention} - enter the new event time.");
-                    var newTime = await GetUserTimeResponse(context, interactivity);
+                    var newTime = await GetUserTimeResponse(context);
                     if (newTime == null)
                     {
                         return;
@@ -416,14 +435,14 @@ namespace DiscordBot.Commands
 
         private async Task<string?> GetUserResponse(
             CommandContext context,
-            InteractivityExtension interactivity,
             string[]? validStrings = null)
         {
+            var interactivity = context.Client.GetInteractivity();
             var response = interactivity.WaitForMessageAsync(
                 message =>
                     IsValidResponse(message, context, validStrings),
                 TimeSpan.FromSeconds(30)
-            ).Result.Result.Content;
+            ).Result.Result?.Content;
 
             switch (response)
             {
@@ -438,10 +457,9 @@ namespace DiscordBot.Commands
             return response;
         }
 
-        private async Task<bool?> GetUserConfirmation(
-            CommandContext context,
-            InteractivityExtension interactivity)
+        private async Task<bool?> GetUserConfirmation(CommandContext context)
         {
+            var interactivity = context.Client.GetInteractivity();
             var response = interactivity.WaitForMessageAsync(
                 message =>
                     IsValidResponse(message, context, ConfirmationResponses),
@@ -461,11 +479,9 @@ namespace DiscordBot.Commands
             return response == "yes";
         }
 
-        private async Task<DateTimeOffset?> GetUserTimeResponse(
-            CommandContext context,
-            InteractivityExtension interactivity)
+        private async Task<DateTimeOffset?> GetUserTimeResponse(CommandContext context)
         {
-            var response = await GetUserResponse(context, interactivity);
+            var response = await GetUserResponse(context);
 
             if (response == null)
             {
@@ -483,11 +499,9 @@ namespace DiscordBot.Commands
             }
         }
 
-        private async Task<int?> GetUserIntResponse(
-            CommandContext context,
-            InteractivityExtension interactivity)
+        private async Task<int?> GetUserIntResponse(CommandContext context)
         {
-            var response = await GetUserResponse(context, interactivity);
+            var response = await GetUserResponse(context);
 
             if (response == null)
             {

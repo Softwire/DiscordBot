@@ -22,7 +22,9 @@ namespace DiscordBot
             var discord = new DiscordClient(new DiscordConfiguration
             {
                 Token = Environment.GetEnvironmentVariable("RELEASE_BOT_TOKEN"),
-                TokenType = TokenType.Bot
+                TokenType = TokenType.Bot,
+                Intents = DiscordIntents.AllUnprivileged 
+                          | DiscordIntents.GuildMembers
             });
 
             var services = new ServiceCollection()
