@@ -39,12 +39,10 @@ namespace DiscordBot.Commands
         };
 
         private readonly IEventsSheetsService eventsSheetsService;
-        private readonly EventHelper eventHelper;
 
-        public EventCommands(IEventsSheetsService eventsSheetsService, EventHelper eventHelper)
+        public EventCommands(IEventsSheetsService eventsSheetsService)
         {
             this.eventsSheetsService = eventsSheetsService;
-            this.eventHelper = eventHelper;
         }
 
         [GroupCommand]

@@ -33,6 +33,7 @@ namespace DiscordBot
                 MinimumLogLevel = LogLevel.Debug
             });
 
+            var eventsSheetsService = new EventsSheetsService();
             var services = new ServiceCollection()
                 .AddSingleton<IEventsSheetsService>(eventsSheetsService)
                 .BuildServiceProvider();
@@ -71,15 +72,16 @@ namespace DiscordBot
                 return;
             }
 
-            await ProcessReaction(client, eventArguments, discordEvent);
+            await ProcessReaction(client, eventArguments, discordEvent, eventsSheetsService);
 
-            await UpdateSignupSheet(eventArguments, discordEvent);
+            await UpdateSignupSheet(eventArguments, discordEvent, eventsSheetsService);
         }
 
         private static async Task ProcessReaction(
             DiscordClient client,
             MessageReactionAddEventArgs eventArguments,
-            DiscordEvent discordEvent)
+            DiscordEvent discordEvent,
+            IEventsSheetsService eventsSheetsService)
         {
             var dmChannel = await eventArguments.Guild
                 .GetMemberAsync(eventArguments.User.Id).Result
@@ -112,7 +114,8 @@ namespace DiscordBot
 
         private static async Task UpdateSignupSheet(
             MessageReactionAddEventArgs eventArguments,
-            DiscordEvent discordEvent)
+            DiscordEvent discordEvent,
+            IEventsSheetsService eventsSheetsService)
         {
             var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
             await eventArguments.Message.ModifyAsync(
