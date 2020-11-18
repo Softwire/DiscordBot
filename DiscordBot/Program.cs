@@ -98,6 +98,7 @@ namespace DiscordBot
                 eventArguments.Message.Content,
                 GetSignupEmbed(discordEvent, optionsList).Build()
             );
+            await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
         }
     }
 }
