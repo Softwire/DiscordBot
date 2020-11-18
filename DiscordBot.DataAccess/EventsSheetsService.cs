@@ -37,7 +37,6 @@ namespace DiscordBot.DataAccess
         Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji);
         Task ClearResponsesForUserAsync(int eventKey, ulong userId);
 
-        Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId);
         Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId);
     }
 
@@ -51,15 +50,15 @@ namespace DiscordBot.DataAccess
         private readonly int metadataSheetId;
         private int largestKey;
 
-        private const string MetadataSheetName = "EventsMetadata";
-        private readonly SheetsColumn KeyColumn = new SheetsColumn(0);
-        private readonly SheetsColumn NameColumn = new SheetsColumn(1);
-        private readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
-        private readonly SheetsColumn TimeColumn = new SheetsColumn(3);
-        private readonly SheetsColumn TimeZoneColumn = new SheetsColumn(4);
-        private readonly SheetsColumn MessageIdColumn = new SheetsColumn(5);
+        internal const string MetadataSheetName = "EventsMetadata";
+        internal static readonly SheetsColumn KeyColumn = new SheetsColumn(0);
+        internal static readonly SheetsColumn NameColumn = new SheetsColumn(1);
+        internal static readonly SheetsColumn DescriptionColumn = new SheetsColumn(2);
+        internal static readonly SheetsColumn TimeColumn = new SheetsColumn(3);
+        internal static readonly SheetsColumn TimeZoneColumn = new SheetsColumn(4);
+        internal static readonly SheetsColumn MessageIdColumn = new SheetsColumn(5);
 
-        private readonly SheetsColumn UserIdColumn = new SheetsColumn(0);
+        internal static readonly SheetsColumn UserIdColumn = new SheetsColumn(0);
 
         public EventsSheetsService()
         {
@@ -118,23 +117,29 @@ namespace DiscordBot.DataAccess
             DateTime? time = null
         )
         {
-            var rowNumber = await GetEventRowNumber(eventKey);
+            var rowNumber = await GetEventRowNumberAsync(eventKey);
 
             var data = new List<ValueRange>();
 
             if (name != null)
             {
-                data.Add(MakeCellUpdate($"{MetadataSheetName}!{NameColumn.Letter}{rowNumber}", name));
+                data.Add(SheetsServiceRequestsHelper.MakeCellUpdate(
+                    $"{MetadataSheetName}!{NameColumn.Letter}{rowNumber}",
+                    name
+                ));
             }
 
             if (description != null)
             {
-                data.Add(MakeCellUpdate($"{MetadataSheetName}!{DescriptionColumn}{rowNumber}", description));
+                data.Add(SheetsServiceRequestsHelper.MakeCellUpdate(
+                    $"{MetadataSheetName}!{DescriptionColumn}{rowNumber}",
+                    description
+                ));
             }
 
             if (time != null)
             {
-                data.Add(MakeCellUpdate(
+                data.Add(SheetsServiceRequestsHelper.MakeCellUpdate(
                     $"{MetadataSheetName}!{TimeColumn.Letter}{rowNumber}",
                     time.Value.ToString("s")
                 ));
@@ -157,7 +162,7 @@ namespace DiscordBot.DataAccess
 
         public async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
         {
-            var rowNumber = await GetEventRowNumber(eventKey);
+            var rowNumber = await GetEventRowNumberAsync(eventKey);
 
             var cellValue = new ValueRange()
             {
@@ -179,7 +184,7 @@ namespace DiscordBot.DataAccess
 
         public async Task RemoveEventAsync(int eventKey)
         {
-            var rowNumber = await GetEventRowNumber(eventKey);
+            var rowNumber = await GetEventRowNumberAsync(eventKey);
             var responseSheetId = await GetSheetIdFromTitleAsync(eventKey.ToString());
 
             var requestParameters = new BatchUpdateSpreadsheetRequest()
@@ -245,7 +250,7 @@ namespace DiscordBot.DataAccess
                         int.Parse((string) row[KeyColumn.Index]),
                         (DateTime) row[TimeColumn.Index],
                         (string) row[TimeZoneColumn.Index],
-                        ParseMessageId(row)
+                        SheetsServiceParsingHelper.ParseMessageId(row)
                     ));
             }
             catch (GoogleApiException exception)
@@ -297,25 +302,37 @@ namespace DiscordBot.DataAccess
             await request.ExecuteAsync();
         }
 
-#pragma warning disable 1998 // Disable compiler warning stating that the unimplemented functions are synchronous
-        public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId)
-        {
-            return new Dictionary<ulong, IEnumerable<EventResponse>>
-            {
-                { 0UL, new[] { new EventResponse(":white_check_mark:", "Yes") } },
-                { 1UL, new[] { new EventResponse(":grey_question:", "Maybe") } }
-            };
-        }
-
         public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
         {
-            return new Dictionary<EventResponse, IEnumerable<ulong>>
+            var request = sheetsService.Spreadsheets.Values.Get(
+                spreadsheetId,
+                $"{eventId}"
+            );
+            request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var response = await request.ExecuteAsync();
+
+            if (response == null || response.Values.Count < 2)
             {
-                { new EventResponse(":white_check_mark:", "Yes"), new[] { 0UL } },
-                { new EventResponse(":grey_question:", "Maybe"), new[] { 1UL } }
-            };
+                throw new EventInitialisationException("Sign up sheet is empty");
+            }
+
+            var responseColumns = SheetsServiceParsingHelper.ParseResponseHeaders(response.Values).ToList();
+
+            var result = responseColumns.ToDictionary(
+                eventResponse => eventResponse,
+                eventResponse => new List<ulong>()
+            );
+
+            response.Values.Skip(2)
+                .SelectMany(row => SheetsServiceParsingHelper.ParseResponseRow(responseColumns, row))
+                .ToList()
+                .ForEach(pair => result[pair.response].Add(pair.userId));
+
+            return result.ToDictionary(
+                entry => entry.Key,
+                entry => (IEnumerable<ulong>) entry.Value
+            );
         }
-#pragma warning restore 1998
 
         private static ServiceAccountCredential GetCredential()
         {
@@ -443,7 +460,7 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        private async Task<int> GetEventRowNumber(int eventKey)
+        private async Task<int> GetEventRowNumberAsync(int eventKey)
         {
             var rowNumber = await GetRowNumberFromKeyAsync(MetadataSheetName, KeyColumn, 1, (ulong) eventKey);
             if (rowNumber == null)
@@ -486,12 +503,7 @@ namespace DiscordBot.DataAccess
                     throw new EventsSheetsInitialisationException($"Event sheet {eventKey} is empty");
                 }
 
-                return sheetsResponse.Values[0]
-                    .Zip(sheetsResponse.Values[1])
-                    .Skip(1) // Skip titles column
-                    .Select<(object emoji, object name), EventResponse>(response =>
-                        new EventResponse((string)response.emoji, (string)response.name)
-                    );
+                return SheetsServiceParsingHelper.ParseResponseHeaders(sheetsResponse.Values);
             }
             catch (GoogleApiException)
             {
@@ -499,36 +511,6 @@ namespace DiscordBot.DataAccess
                     $"Could not find event responses for event {eventKey}. Has it been published yet?"
                 );
             }
-        }
-
-        private ulong? ParseMessageId(IList<object> row)
-        {
-            // The messageId might have been trimmed off the end of the row because it was empty
-            // so check for this.
-            var rowContainsMessageId = row.Count < MessageIdColumn.Index + 1;
-            if (rowContainsMessageId)
-            {
-                return null;
-            }
-
-            var cellContents = (string) row[MessageIdColumn.Index];
-
-            var messageIdCellIsEmpty = cellContents == "";
-            if (messageIdCellIsEmpty)
-            {
-                return null;
-            }
-
-            return ulong.Parse(cellContents);
-        }
-
-        private ValueRange MakeCellUpdate(string range, object value)
-        {
-            return new ValueRange()
-            {
-                Range = range,
-                Values = new IList<object>[] { new[] { value } }
-            };
         }
 
         private async Task AddResponseForNewUserAsync(
@@ -541,7 +523,7 @@ namespace DiscordBot.DataAccess
             var newRow = responseColumns
                 .Select(response => response.Emoji == responseEmoji ? 1 : 0)
                 .Cast<object>()
-                .Prepend(userId);
+                .Prepend(userId.ToString());
 
             var values = new ValueRange()
             {
@@ -570,7 +552,7 @@ namespace DiscordBot.DataAccess
             var updateColumn = new SheetsColumn(index + 1);
             var range = $"{eventKey}!{updateColumn.Letter}{responseRow}";
 
-            var cellValue = MakeCellUpdate(range, 1);
+            var cellValue = SheetsServiceRequestsHelper.MakeCellUpdate(range, 1);
             var request = sheetsService.Spreadsheets.Values.Update(cellValue, spreadsheetId, range);
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
