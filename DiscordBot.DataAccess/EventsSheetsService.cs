@@ -392,13 +392,8 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        private int GetSheetIdFromTitle(string title)
-        {
-            var spreadsheet = sheetsService.Spreadsheets.Get(spreadsheetId).Execute();
-            var sheets = spreadsheet.Sheets;
-
-            return FindSheetId(sheets, title);
-        }
+        private int GetSheetIdFromTitle(string title) =>
+            GetSheetIdFromTitleAsync(title).Result;
 
         private async Task<int> GetSheetIdFromTitleAsync(string title)
         {
