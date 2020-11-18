@@ -81,7 +81,9 @@ namespace DiscordBot
             {
                 try
                 {
-                    await eventsSheetsService.AddResponseForUserAsync(discordEvent.Key, eventArguments.User.Id,
+                    await eventsSheetsService.AddResponseForUserAsync(
+                        discordEvent.Key,
+                        eventArguments.User.Id,
                         eventArguments.Emoji.GetDiscordName());
                 }
                 catch (ResponseNotFoundException)
@@ -89,14 +91,15 @@ namespace DiscordBot
                     return;
                 }
 
-                await client.SendMessageAsync(dmChannel,
+                await client.SendMessageAsync(
+                    dmChannel,
                     $"You've responded to {discordEvent.Name} as {eventArguments.Emoji.Name}.");
             }
 
-            var optionsList = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
+            var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
             await eventArguments.Message.ModifyAsync(
                 eventArguments.Message.Content,
-                GetSignupEmbed(discordEvent, optionsList).Build()
+                GetSignupEmbed(discordEvent, signupsByResponse).Build()
             );
             await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
         }
