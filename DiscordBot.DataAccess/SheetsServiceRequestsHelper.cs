@@ -147,8 +147,6 @@ namespace DiscordBot.DataAccess
                     {
                         retryMilliseconds *= 2;
                         retryMilliseconds += random.Next(1, 1000);
-
-                        Console.WriteLine($"Retry: {retryMilliseconds}");
                         await Task.Delay(retryMilliseconds);
                     }
                     else throw;
