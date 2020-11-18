@@ -3,10 +3,7 @@
 
 name: Build and deploy ASP.Net Core app to Azure Web App - softwire-discord-bot
 
-on:
-  push:
-    branches:
-      - main
+on: push
 
 jobs:
   build-and-deploy:
@@ -24,9 +21,11 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: dotnet publish
+      if: ${{github.ref == 'main'}}
       run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp/app_data/Jobs/Continuous/DiscordBot
 
     - name: Deploy to Azure Web App
+      if: ${{github.ref == 'main'}}
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'softwire-discord-bot'
