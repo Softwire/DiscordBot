@@ -8,7 +8,7 @@ namespace DiscordBot.DataAccess
 {
     internal static class SheetsServiceRequestsHelper
     {
-        public static Request AddEventMetadata(
+        internal static Request AddEventMetadata(
             int metadataSheetId,
             int eventKey,
             string name,
@@ -39,7 +39,7 @@ namespace DiscordBot.DataAccess
             return new Request() { AppendCells = appendCellsRequest };
         }
 
-        public static Request AddResponseSheet(int eventKey)
+        internal static Request AddResponseSheet(int eventKey)
         {
             var addResponseSheet = new AddSheetRequest()
             {
@@ -53,7 +53,7 @@ namespace DiscordBot.DataAccess
             return new Request() { AddSheet = addResponseSheet };
         }
 
-        public static Request AddResponseColumns(int eventKey, IEnumerable<EventResponse> responses)
+        internal static Request AddResponseColumns(int eventKey, IEnumerable<EventResponse> responses)
         {
             var responseList = responses.ToList();
 
@@ -85,7 +85,7 @@ namespace DiscordBot.DataAccess
             return new Request() { AppendCells = addResponseColumns };
         }
 
-        public static Request RemoveRow(int sheetId, int rowNumber)
+        internal static Request RemoveRow(int sheetId, int rowNumber)
         {
             return new Request()
             {
@@ -102,7 +102,7 @@ namespace DiscordBot.DataAccess
             };
         }
 
-        public static Request RemoveEventResponses(int responseSheetId)
+        internal static Request RemoveEventResponses(int responseSheetId)
         {
             return new Request()
             {
@@ -110,6 +110,15 @@ namespace DiscordBot.DataAccess
                 {
                     SheetId = responseSheetId
                 }
+            };
+        }
+
+        internal static ValueRange MakeCellUpdate(string range, object value)
+        {
+            return new ValueRange()
+            {
+                Range = range,
+                Values = new IList<object>[] { new[] { value } }
             };
         }
 
