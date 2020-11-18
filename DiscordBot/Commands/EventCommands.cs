@@ -1,14 +1,13 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.DataAccess;
 using DiscordBot.DataAccess.Exceptions;
-using DiscordBot.DataAccess.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
+using static DiscordBot.Commands.EventHelper;
 
 namespace DiscordBot.Commands
 {
@@ -287,67 +286,8 @@ namespace DiscordBot.Commands
             {
                 await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
             }
-        }
 
-        private Dictionary<ulong, IEnumerable<EventResponse>> GetResponsesByUser(
-            Dictionary<EventResponse, IEnumerable<ulong>> signupsByResponse)
-        {
-            var signupsByUser = new Dictionary<ulong, IEnumerable<EventResponse>>();
-
-            var userIds = signupsByResponse.Values
-                .SelectMany(responseSignups => responseSignups)
-                .Distinct();
-
-            foreach (var userId in userIds)
-            {
-                var userResponses = signupsByResponse
-                    .Where(responseSignups => responseSignups.Value.Contains(userId))
-                    .Select(responseSignups => responseSignups.Key);
-
-                signupsByUser.Add(userId, userResponses);
-            }
-
-            return signupsByUser;
-        }
-
-        private DiscordEmbedBuilder GetSignupEmbed(
-            DiscordEvent discordEvent,
-            Dictionary<EventResponse, IEnumerable<ulong>> signupsByResponse)
-        {
-            var userResponseDictionary = GetResponsesByUser(signupsByResponse);
-
-            var signupEmbed = new DiscordEmbedBuilder
-            {
-                Title = $"{discordEvent.Name} - {discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}",
-                Description = discordEvent.Description,
-                Footer = new DiscordEmbedBuilder.EmbedFooter
-                {
-                    Text = $"event key: {discordEvent.Key}"
-                }
-            };
-
-            var usersField = string.Join(
-                "\n",
-                userResponseDictionary.Select(response => $"<@{response.Key}>")
-            );
-
-            signupEmbed.AddField("Participants", usersField, true);
-
-            var responsesList = userResponseDictionary.Select(
-                response => string.Join(" ", response.Value)
-            );
-            var responsesField = string.Join("\n", responsesList);
-
-            signupEmbed.AddField("Response(s)", responsesField, true);
-
-            var optionsField = string.Join(
-                "\n",
-                signupsByResponse.Select(response => $"{response.Key.Emoji} - {response.Key.ResponseName}")
-            );
-
-            signupEmbed.AddField("Response options", optionsField);
-
-            return signupEmbed;
+            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":no_entry_sign:"));
         }
 
         private async Task EditEventField(
@@ -464,7 +404,7 @@ namespace DiscordBot.Commands
                 message =>
                     IsValidResponse(message, context, ConfirmationResponses),
                 TimeSpan.FromSeconds(30)
-            ).Result.Result.Content;
+            ).Result.Result?.Content;
 
             switch (response)
             {
