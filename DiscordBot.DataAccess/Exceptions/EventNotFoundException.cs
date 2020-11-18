@@ -2,7 +2,7 @@
 
 namespace DiscordBot.DataAccess.Exceptions
 {
-    public class EventNotFoundException : Exception
+    public class EventNotFoundException : EventsSheetsException
     {
         public EventNotFoundException(string? message) : base(message) { }
     }

@@ -2,7 +2,10 @@
 
 namespace DiscordBot.DataAccess.Exceptions
 {
-    class SheetNotFoundException : Exception
+    class SheetNotFoundException : EventsSheetsException
     {
+        public SheetNotFoundException(string? message) : base(message)
+        {
+        }
     }
 }

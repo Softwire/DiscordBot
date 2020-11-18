@@ -2,7 +2,7 @@
 
 namespace DiscordBot.DataAccess.Exceptions
 {
-    public class EventsSheetsInitialisationException : Exception
+    public class EventsSheetsInitialisationException : EventsSheetsException
     {
         public EventsSheetsInitialisationException(string? message) : base(message) { }
 
