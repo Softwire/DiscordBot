@@ -61,6 +61,7 @@ namespace DiscordBot
             MessageReactionAddEventArgs eventArguments,
             IEventsSheetsService eventsSheetsService)
         {
+            // Skip if event was triggered by the bot
             if (eventArguments.User == client.CurrentUser)
             {
                 return;
