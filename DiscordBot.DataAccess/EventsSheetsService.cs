@@ -132,7 +132,7 @@ namespace DiscordBot.DataAccess
             if (description != null)
             {
                 data.Add(SheetsServiceRequestsHelper.MakeCellUpdate(
-                    $"{MetadataSheetName}!{DescriptionColumn}{rowNumber}",
+                    $"{MetadataSheetName}!{DescriptionColumn.Letter}{rowNumber}",
                     description
                 ));
             }
