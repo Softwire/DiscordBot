@@ -10,9 +10,14 @@ namespace DiscordBot.Commands
 {
     class EventHelper
     {
-        private static IEventsSheetsService eventsSheetsService = new EventsSheetsService();
+        private IEventsSheetsService eventsSheetsService;
 
-        public static async Task<DiscordEvent?> GetEventFromMessageIdOrDefaultAsync(ulong messageId)
+        public EventHelper(IEventsSheetsService eventsSheetsService)
+        {
+            this.eventsSheetsService = eventsSheetsService;
+        }
+
+        public async Task<DiscordEvent?> GetEventFromMessageIdOrDefaultAsync(ulong messageId)
         {
             try
             {
@@ -24,7 +29,7 @@ namespace DiscordBot.Commands
             }
         }
 
-        public static Dictionary<ulong, IEnumerable<EventResponse>> GetResponsesByUser(
+        public Dictionary<ulong, IEnumerable<EventResponse>> GetResponsesByUser(
             Dictionary<EventResponse, IEnumerable<ulong>> signupsByResponse)
         {
             var signupsByUser = new Dictionary<ulong, IEnumerable<EventResponse>>();
@@ -45,7 +50,7 @@ namespace DiscordBot.Commands
             return signupsByUser;
         }
 
-        public static DiscordEmbedBuilder GetSignupEmbed(
+        public DiscordEmbedBuilder GetSignupEmbed(
             DiscordEvent discordEvent,
             Dictionary<EventResponse, IEnumerable<ulong>> signupsByResponse)
         {

@@ -11,13 +11,13 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using static DiscordBot.Commands.EventHelper;
 
 namespace DiscordBot
 {
     internal class Program
     {
         private static readonly IEventsSheetsService eventsSheetsService = new EventsSheetsService();
+        private static readonly EventHelper eventHelper = new EventHelper(eventsSheetsService);
 
         private static void Main()
         {
@@ -36,7 +36,7 @@ namespace DiscordBot
             });
 
             var services = new ServiceCollection()
-                .AddSingleton<IEventsSheetsService>(new EventsSheetsService())
+                .AddSingleton<IEventsSheetsService>(eventsSheetsService)
                 .BuildServiceProvider();
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
@@ -63,7 +63,7 @@ namespace DiscordBot
                 return;
             }
 
-            var discordEvent = await GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id);
+            var discordEvent = await eventHelper.GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id);
             if (discordEvent == null)
             {
                 return;
@@ -115,7 +115,7 @@ namespace DiscordBot
             var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
             await eventArguments.Message.ModifyAsync(
                 eventArguments.Message.Content,
-                GetSignupEmbed(discordEvent, signupsByResponse).Build()
+                eventHelper.GetSignupEmbed(discordEvent, signupsByResponse).Build()
             );
 
             await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
