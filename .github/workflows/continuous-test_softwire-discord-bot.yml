@@ -21,11 +21,11 @@ jobs:
       run: dotnet build --configuration Release
 
     - name: dotnet publish
-      if: ${{github.ref == 'main'}}
+      if: ${{github.ref == 'continuous-update'}}
       run: dotnet publish -c Release -o ${{env.DOTNET_ROOT}}/myapp/app_data/Jobs/Continuous/DiscordBot
 
     - name: Deploy to Azure Web App
-      if: ${{github.ref == 'main'}}
+      if: ${{github.ref == 'continuous-update'}}
       uses: azure/webapps-deploy@v2
       with:
         app-name: 'softwire-discord-bot'
