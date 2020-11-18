@@ -35,14 +35,19 @@ GOOGLE_PRIVATE_KEY_ID
 GOOGLE_PRIVATE_KEY
 ```
 
-There is a template launchSettings.json.copy file in "Properties/ServiceDependencies/", all you need to do is remove the ".copy"
-and then add the values necessary
+There is a template launchSettings.json.copy file in "DiscordBot/Properties/ServiceDependencies/", all you need to do is 
+duplicate this file and remove ".copy" from it.
 
 2. With your bot selected in Discord for developers, go to "Bot" on the left
 ![Bot settings](readme-pics/bot-settings.png)
-3. Copy the token on this page and pass it into your launchSettings.json as `RELEASE_BOT_TOKEN`
-4. Pass in the `GOOGLE_SHEET_ID` and the four relevant fields in the JSON from Zoho
-5. Have someone who knows what they're doing add your new test bot into the Discord server
-6. Run!
+3. You will need to give the bot the "Server members intent" under "Privileged Gateway Intents" to give it access to member events.
+![Add intents](readme-pics/add-intents.png)
+4. Copy the token on this page and pass it into your launchSettings.json as `RELEASE_BOT_TOKEN`
+5. Pass in the `GOOGLE_SHEET_ID` and the four relevant fields in the JSON from Zoho
+6. On the Discord developer page, select your app and go to "OAuth2", from here select "bot" and any permissions you want
+the bot to have. Copy the generated link and paste it into your browser to add the bot to your testing server.
+![Add to server](readme-pics/add-to-server.png)
+7. Run!
+8. You will need to create and add a role name "Bot Whisperer" in your discord server and give that role to anyone that needs to use `?event` commands.
 
 You should now be able to interact with your bot in the Discord server. Try saying `?event`!
