@@ -1,0 +1,15 @@
+﻿{
+  "profiles": {
+    "DiscordBot": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "GOOGLE_CLIENT_EMAIL": "",
+        "GOOGLE_PRIVATE_KEY": "",
+        "GOOGLE_SHEET_ID": "",
+        "GOOGLE_PROJECT_ID": "",
+        "RELEASE_BOT_TOKEN": "",
+        "GOOGLE_PRIVATE_KEY_ID": ""
+      }
+    }
+  }
+}
