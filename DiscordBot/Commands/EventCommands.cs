@@ -7,6 +7,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 using DSharpPlus.Interactivity.Extensions;
+using static DiscordBot.Commands.EventHelper;
 
 namespace DiscordBot.Commands
 {
@@ -278,7 +279,7 @@ namespace DiscordBot.Commands
 
             var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
 
-            var signupEmbed = eventHelper.GetSignupEmbed(discordEvent, signupsByResponse);
+            var signupEmbed = GetSignupEmbed(discordEvent, signupsByResponse);
 
             var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
             await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);

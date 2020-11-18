@@ -11,13 +11,13 @@ using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using static DiscordBot.Commands.EventHelper;
 
 namespace DiscordBot
 {
     internal class Program
     {
         private static readonly IEventsSheetsService eventsSheetsService = new EventsSheetsService();
-        private static readonly EventHelper eventHelper = new EventHelper(eventsSheetsService);
 
         private static void Main()
         {
@@ -37,7 +37,6 @@ namespace DiscordBot
 
             var services = new ServiceCollection()
                 .AddSingleton<IEventsSheetsService>(eventsSheetsService)
-                .AddSingleton<EventHelper>(eventHelper)
                 .BuildServiceProvider();
 
             var commands = discord.UseCommandsNext(new CommandsNextConfiguration
@@ -49,7 +48,10 @@ namespace DiscordBot
             commands.RegisterCommands<EventCommands>();
 
             discord.UseInteractivity(new InteractivityConfiguration());
-            discord.MessageReactionAdded += OnMessageReactionAdded;
+            discord.MessageReactionAdded += async (client, eventArguments) =>
+            {
+                await OnMessageReactionAdded(client, eventArguments, eventsSheetsService);
+            };
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
@@ -57,14 +59,15 @@ namespace DiscordBot
 
         private static async Task OnMessageReactionAdded(
             DiscordClient client,
-            MessageReactionAddEventArgs eventArguments)
+            MessageReactionAddEventArgs eventArguments,
+            IEventsSheetsService eventsSheetsService)
         {
             if (eventArguments.User == client.CurrentUser)
             {
                 return;
             }
 
-            var discordEvent = await eventHelper.GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id);
+            var discordEvent = await GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id, eventsSheetsService);
             if (discordEvent == null)
             {
                 return;
@@ -116,7 +119,7 @@ namespace DiscordBot
             var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
             await eventArguments.Message.ModifyAsync(
                 eventArguments.Message.Content,
-                eventHelper.GetSignupEmbed(discordEvent, signupsByResponse).Build()
+                GetSignupEmbed(discordEvent, signupsByResponse).Build()
             );
 
             await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
