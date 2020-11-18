@@ -520,7 +520,16 @@ namespace DiscordBot.DataAccess
             IEnumerable<EventResponse> responseColumns
         )
         {
-            var newRow = responseColumns
+            var responseList = responseColumns.ToList();
+
+            if (responseList.All(response => response.Emoji != responseEmoji))
+            {
+                throw new ResponseNotFoundException(
+                    $"Response {responseEmoji} is not recognised for event {eventKey}"
+                );
+            }
+
+            var newRow = responseList
                 .Select(response => response.Emoji == responseEmoji ? 1 : 0)
                 .Cast<object>()
                 .Prepend(userId.ToString());
@@ -547,6 +556,13 @@ namespace DiscordBot.DataAccess
         )
         {
             var index = responseColumns.ToList().FindIndex(responseOption => responseOption.Emoji == responseEmoji);
+
+            if (index == -1)
+            {
+                throw new ResponseNotFoundException(
+                    $"Response {responseEmoji} is not recognised for event {eventKey}"
+                );
+            }
 
             // Plus 1 to correct for the title column that is skipped over and not in the response list.
             var updateColumn = new SheetsColumn(index + 1);
