@@ -413,7 +413,7 @@ namespace DiscordBot.DataAccess
 
             if (metadataSheet?.Properties.SheetId == null)
             {
-                throw new SheetNotFoundException();
+                throw new SheetNotFoundException($"Could not find sheet with title {title}");
             }
 
             return metadataSheet.Properties.SheetId.Value;
