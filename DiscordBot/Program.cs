@@ -17,8 +17,6 @@ namespace DiscordBot
 {
     internal class Program
     {
-        private static readonly IEventsSheetsService eventsSheetsService = new EventsSheetsService();
-
         private static void Main()
         {
             MainAsync().ConfigureAwait(false).GetAwaiter().GetResult();
