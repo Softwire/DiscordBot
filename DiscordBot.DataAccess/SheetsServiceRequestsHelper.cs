@@ -1,7 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
+using DiscordBot.DataAccess.Exceptions;
 using DiscordBot.DataAccess.Models;
+using Google;
+using Google.Apis.Requests;
 using Google.Apis.Sheets.v4.Data;
 
 namespace DiscordBot.DataAccess
@@ -120,6 +125,36 @@ namespace DiscordBot.DataAccess
                 Range = range,
                 Values = new IList<object>[] { new[] { value } }
             };
+        }
+
+        internal static T ExecuteRequestsWithRetries<T>(ClientServiceRequest<T> request) =>
+            ExecuteRequestsWithRetriesAsync(request).Result;
+
+        internal static async Task<T> ExecuteRequestsWithRetriesAsync<T>(ClientServiceRequest<T> request)
+        {
+            var random = new Random();
+            var retryMilliseconds = random.Next(1000, 2000);
+
+            while (retryMilliseconds <= 200000)
+            {
+                try
+                {
+                    return await request.ExecuteAsync();
+                }
+                catch (GoogleApiException exception)
+                {
+                    if (exception.HttpStatusCode == HttpStatusCode.TooManyRequests)
+                    {
+                        retryMilliseconds *= 2;
+                        retryMilliseconds += random.Next(1, 1000);
+
+                        Console.WriteLine($"Retry: {retryMilliseconds}");
+                        await Task.Delay(retryMilliseconds);
+                    }
+                    else throw;
+                }
+            }
+            throw new EventsSheetsException("Sheets service failed to respond after at least 200s");
         }
 
         private static CellData MakeCellData(double number)

@@ -107,7 +107,8 @@ namespace DiscordBot.DataAccess
                 }
             };
 
-            await sheetsService.Spreadsheets.BatchUpdate(requests, spreadsheetId).ExecuteAsync();
+            var request = sheetsService.Spreadsheets.BatchUpdate(requests, spreadsheetId);
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
         public async Task EditEventAsync(
@@ -157,7 +158,7 @@ namespace DiscordBot.DataAccess
             };
 
             var request = sheetsService.Spreadsheets.Values.BatchUpdate(updateRequest, spreadsheetId);
-            await request.ExecuteAsync();
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
         public async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
@@ -179,7 +180,7 @@ namespace DiscordBot.DataAccess
             );
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
-            await request.ExecuteAsync();
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
         public async Task RemoveEventAsync(int eventKey)
@@ -197,7 +198,7 @@ namespace DiscordBot.DataAccess
             };
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
-            await request.ExecuteAsync();
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
         public async Task<DiscordEvent> GetEventAsync(int eventKey)
@@ -235,7 +236,7 @@ namespace DiscordBot.DataAccess
                     $"{MetadataSheetName}!{KeyColumn.Letter}:{MessageIdColumn.Letter}"
                 );
                 request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
-                var response = await request.ExecuteAsync();
+                var response = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
                 if (response == null || response.Values.Count < 1)
                 {
@@ -306,7 +307,7 @@ namespace DiscordBot.DataAccess
             };
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
-            await request.ExecuteAsync();
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
         public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
@@ -316,7 +317,7 @@ namespace DiscordBot.DataAccess
                 $"{eventId}"
             );
             request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
-            var response = await request.ExecuteAsync();
+            var response = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
             if (response == null || response.Values.Count < 2)
             {
@@ -367,7 +368,7 @@ namespace DiscordBot.DataAccess
                     spreadsheetId,
                     $"{MetadataSheetName}!{KeyColumn.Letter}:{KeyColumn.Letter}"
                 );
-                var response = request.Execute();
+                var response = SheetsServiceRequestsHelper.ExecuteRequestsWithRetries(request);
 
                 if (response == null || response.Values.Count < 1)
                 {
@@ -401,7 +402,8 @@ namespace DiscordBot.DataAccess
 
         private async Task<int> GetSheetIdFromTitleAsync(string title)
         {
-            var spreadsheet = await sheetsService.Spreadsheets.Get(spreadsheetId).ExecuteAsync();
+            var request = sheetsService.Spreadsheets.Get(spreadsheetId);
+            var spreadsheet = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
             var sheets = spreadsheet.Sheets;
 
             return FindSheetId(sheets, title);
@@ -444,7 +446,7 @@ namespace DiscordBot.DataAccess
                     spreadsheetId,
                     $"{sheetName}!{keyColumn.Letter}:{keyColumn.Letter}"
                 );
-                var response = await request.ExecuteAsync();
+                var response = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
                 if (response == null || response.Values.Count < numberOfHeaderRows)
                 {
@@ -503,7 +505,7 @@ namespace DiscordBot.DataAccess
                 );
                 request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
 
-                var sheetsResponse = await request.ExecuteAsync();
+                var sheetsResponse = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
                 if (sheetsResponse == null || sheetsResponse.Values.Count < 2)
                 {
@@ -543,7 +545,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Append(values, spreadsheetId, $"{eventKey}");
             request.ValueInputOption = AppendRequest.ValueInputOptionEnum.RAW;
 
-            await request.ExecuteAsync();
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
         private async Task AddResponseForExistingUserAsync(
@@ -563,7 +565,7 @@ namespace DiscordBot.DataAccess
             var request = sheetsService.Spreadsheets.Values.Update(cellValue, spreadsheetId, range);
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
-            await request.ExecuteAsync();
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
     }
 }
