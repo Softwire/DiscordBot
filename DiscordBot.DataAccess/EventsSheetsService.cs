@@ -271,7 +271,7 @@ namespace DiscordBot.DataAccess
             var responseRow = responseRowTask.Result;
             var responseColumns = responseColumnsTask.Result;
 
-            if (responseColumns.All(response => response.Emoji != responseEmoji))
+            if (!responseColumns.Any(response => response.Emoji == responseEmoji))
             {
                 throw new ResponseNotFoundException(
                     $"Response {responseEmoji} is not recognised for event {eventKey}"
