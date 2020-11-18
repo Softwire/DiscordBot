@@ -271,6 +271,13 @@ namespace DiscordBot.DataAccess
             var responseRow = responseRowTask.Result;
             var responseColumns = responseColumnsTask.Result;
 
+            if (!responseColumns.Any(response => response.Emoji == responseEmoji))
+            {
+                throw new ResponseNotFoundException(
+                    $"Response {responseEmoji} is not recognised for event {eventKey}"
+                );
+            }
+
             if (responseRow == null)
             {
                 await AddResponseForNewUserAsync(eventKey, userId, responseEmoji, responseColumns);
