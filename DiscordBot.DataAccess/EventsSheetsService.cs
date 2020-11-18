@@ -37,7 +37,6 @@ namespace DiscordBot.DataAccess
         Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji);
         Task ClearResponsesForUserAsync(int eventKey, ulong userId);
 
-        Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId);
         Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId);
     }
 
@@ -295,42 +294,6 @@ namespace DiscordBot.DataAccess
 
             var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
             await request.ExecuteAsync();
-        }
-
-        public async Task<Dictionary<ulong, IEnumerable<EventResponse>>> GetSignupsByUserAsync(int eventId)
-        {
-            var request = sheetsService.Spreadsheets.Values.Get(
-                spreadsheetId,
-                $"{eventId}"
-            );
-            request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
-            var response = await request.ExecuteAsync();
-
-            if (response == null || response.Values.Count < 2)
-            {
-                throw new EventInitialisationException("Sign up sheet is empty");
-            }
-
-            var responseColumns = ParseResponseHeaders(response.Values);
-
-            return response.Values
-                .Skip(2)
-                .Select(row =>
-                {
-                    var user = ulong.Parse((string) row[0]);
-                    var responseList =
-                        row.Skip(1) // Skip title column
-                            .Zip(responseColumns)
-                            .Where<(object cell, EventResponse response)>(
-                                pair => pair.cell.ToString() == "1"
-                            )
-                            .Select(pair => pair.response);
-                    return (user, responseList);
-                })
-                .ToDictionary(
-                    entry => entry.user,
-                    entry => entry.responseList
-                );
         }
 
         public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
