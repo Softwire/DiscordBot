@@ -69,7 +69,7 @@ namespace DiscordBot.Commands
             switch (eventOperation)
             {
                 case "create":
-                    await CreateEventName(context);
+                    await CreateEvent(context);
                     break;
                 case "list":
                     await ListEvents(context);
@@ -90,7 +90,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("create")]
-        public async Task CreateEventName(CommandContext context)
+        public async Task CreateEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the name of the event?");
             var eventName = await GetUserResponse(context);
@@ -99,11 +99,11 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await CreateEventDescription(context, eventName);
+            await CreateEvent(context, eventName);
         }
 
         [Command("create")]
-        public async Task CreateEventDescription(CommandContext context, string eventName)
+        public async Task CreateEvent(CommandContext context, string eventName)
         {
             await context.RespondAsync($"{context.Member.Mention} - give an event description.");
             var eventDescription = await GetUserResponse(context);
@@ -112,11 +112,11 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await CreateEventTime(context, eventName, eventDescription);
+            await CreateEvent(context, eventName, eventDescription);
         }
 
         [Command("create")]
-        public async Task CreateEventTime(CommandContext context, string eventName, string eventDescription)
+        public async Task CreateEvent(CommandContext context, string eventName, string eventDescription)
         {
             await context.RespondAsync($"{context.Member.Mention} - what time is your event?");
             var eventTime = await GetUserTimeResponse(context);
