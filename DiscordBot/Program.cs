@@ -100,14 +100,14 @@ namespace DiscordBot
                     );
                     break;
                 default:
-                    await AddReaction(client, eventArguments, discordEvent, dmChannel, eventsSheetsService);
+                    await AddResponse(client, eventArguments, discordEvent, dmChannel, eventsSheetsService);
                     break;
             }
 
             await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
         }
 
-        private static async Task AddReaction(
+        private static async Task AddResponse(
             DiscordClient client,
             MessageReactionAddEventArgs eventArguments,
             DiscordEvent discordEvent,
@@ -124,6 +124,7 @@ namespace DiscordBot
             }
             catch (ResponseNotFoundException)
             {
+                return;
             }
 
             await client.SendMessageAsync(
