@@ -329,8 +329,8 @@ namespace DiscordBot.Commands
             {
                 await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
             }
-
             await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":no_entry_sign:"));
+            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":arrows_counterclockwise:"));
         }
 
         private async Task EditEventField(

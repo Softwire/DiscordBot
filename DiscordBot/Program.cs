@@ -74,8 +74,6 @@ namespace DiscordBot
             }
 
             await ProcessReaction(client, eventArguments, discordEvent, eventsSheetsService);
-
-            await UpdateSignupSheet(eventArguments, discordEvent, eventsSheetsService);
         }
 
         private static async Task ProcessReaction(
@@ -88,29 +86,36 @@ namespace DiscordBot
                 .GetMemberAsync(eventArguments.User.Id).Result
                 .CreateDmChannelAsync();
 
-            if (eventArguments.Emoji.GetDiscordName() == ":no_entry_sign:")
+            switch (eventArguments.Emoji.GetDiscordName())
             {
-                await eventsSheetsService.ClearResponsesForUserAsync(discordEvent.Key, eventArguments.User.Id);
-                await client.SendMessageAsync(dmChannel, $"You've signed off {discordEvent.Name}.");
-            }
-            else
-            {
-                try
-                {
-                    await eventsSheetsService.AddResponseForUserAsync(
-                        discordEvent.Key,
-                        eventArguments.User.Id,
-                        eventArguments.Emoji.GetDiscordName());
-                }
-                catch (ResponseNotFoundException)
-                {
-                    return;
-                }
+                case (":arrows_counterclockwise:"):
+                    await UpdateSignupSheet(eventArguments, discordEvent, eventsSheetsService);
+                    break;
+                case (":no_entry_sign:"):
+                    await eventsSheetsService.ClearResponsesForUserAsync(discordEvent.Key, eventArguments.User.Id);
+                    await client.SendMessageAsync(dmChannel, $"You've signed off {discordEvent.Name}.");
+                    break;
+                default:
+                    try
+                    {
+                        await eventsSheetsService.AddResponseForUserAsync(
+                            discordEvent.Key,
+                            eventArguments.User.Id,
+                            eventArguments.Emoji.GetDiscordName());
+                    }
+                    catch (ResponseNotFoundException)
+                    {
+                        break;
+                    }
 
-                await client.SendMessageAsync(
-                    dmChannel,
-                    $"You've responded to {discordEvent.Name} as {eventArguments.Emoji.Name}.");
+                    await client.SendMessageAsync(
+                        dmChannel,
+                        $"You've responded to {discordEvent.Name} as {eventArguments.Emoji.Name}."
+                    );
+                    break;
             }
+
+            await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
         }
 
         private static async Task UpdateSignupSheet(
@@ -123,8 +128,6 @@ namespace DiscordBot
                 eventArguments.Message.Content,
                 GetSignupEmbed(discordEvent, signupsByResponse).Build()
             );
-
-            await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
         }
     }
 }
