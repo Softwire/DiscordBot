@@ -88,7 +88,7 @@ namespace DiscordBot
                 .GetMemberAsync(eventArguments.User.Id).Result
                 .CreateDmChannelAsync();
 
-            if (eventArguments.Emoji.GetDiscordName() == ":no_entry_sign:")
+            if (eventArguments.Emoji.GetDiscordName() == EventCommands.ClearReaction)
             {
                 await eventsSheetsService.ClearResponsesForUserAsync(discordEvent.Key, eventArguments.User.Id);
                 await client.SendMessageAsync(dmChannel, $"You've signed off {discordEvent.Name}.");
