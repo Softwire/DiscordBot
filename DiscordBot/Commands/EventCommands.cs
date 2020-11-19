@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.DataAccess;
@@ -163,10 +162,9 @@ namespace DiscordBot.Commands
 
             for (var i = 0; i < ResponseSets.Length; i++)
             {
-                var responseSet = ResponseSets[i];
                 var responseSetString = string.Join(
                     ", ",
-                    responseSet.Select(response => $"{response.ResponseName} - {response.Emoji}")
+                    ResponseSets[i].Select(response => $"{response.ResponseName} - {response.Emoji}")
                 );
                 responseEmbed.AddField($"Response set {i}", responseSetString);
             }
