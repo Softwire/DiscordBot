@@ -10,13 +10,13 @@ namespace DiscordBot.DataAccess
         {
             // The messageId might have been trimmed off the end of the row because it was empty
             // so check for this.
-            var rowContainsMessageId = row.Count < EventsSheetsService.MessageIdColumn.Index + 1;
+            var rowContainsMessageId = row.Count < UnsafeEventsSheetsService.MessageIdColumn.Index + 1;
             if (rowContainsMessageId)
             {
                 return null;
             }
 
-            var cellContents = (string)row[EventsSheetsService.MessageIdColumn.Index];
+            var cellContents = (string)row[UnsafeEventsSheetsService.MessageIdColumn.Index];
 
             var messageIdCellIsEmpty = cellContents == "";
             if (messageIdCellIsEmpty)
