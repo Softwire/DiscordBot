@@ -1,8 +1,10 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.DataAccess;
 using DiscordBot.DataAccess.Exceptions;
+using DiscordBot.DataAccess.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -36,6 +38,30 @@ namespace DiscordBot.Commands
         {
             "yes",
             "no"
+        };
+
+        private static readonly EventResponse[][] ResponseSets =
+        {
+            new[]
+            {
+                new EventResponse(":white_check_mark:", "Yes"),
+                new EventResponse(":grey_question:", "Maybe")
+            },
+
+            new[]
+            {
+                new EventResponse(":white_check_mark:", "Yes"),
+                new EventResponse(":money_with_wings:", "Need to buy it"),
+                new EventResponse(":grey_question:", "Maybe")
+            },
+
+            new[]
+            {
+                new EventResponse(":one:", "Option 1"),
+                new EventResponse(":two:", "Option 2"),
+                new EventResponse(":three:", "Option 3"),
+                new EventResponse(":four:", "Option 4")
+            }
         };
 
         private readonly IEventsSheetsService eventsSheetsService;
@@ -130,13 +156,55 @@ namespace DiscordBot.Commands
         [Command("create")] 
         public async Task CreateEvent(CommandContext context, string eventName, string eventDescription, DateTime eventTime)
         {
-            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime);
+            var responseEmbed = new DiscordEmbedBuilder
+            {
+                Title = "Response options"
+            };
 
+
+            var i = 0;
+            foreach (var responseSet in ResponseSets)
+            {
+                var responseSetString = string.Join(
+                    ", ",
+                    responseSet.Select(response => $"{response.ResponseName} - {response.Emoji}")
+                );
+                responseEmbed.AddField($"Response set {i}", responseSetString);
+                i += 1;
+            }
+
+            await context.RespondAsync(
+                $"Which response set would you like to use? (type the number)", 
+                embed: responseEmbed);
+            var responseSetIndex = await GetUserIntResponse(context);
+
+            await CreateEvent(context, eventName, eventDescription, eventTime, responseSetIndex);
+        }
+
+        [Command("create")]
+        public async Task CreateEvent(
+            CommandContext context,
+            string eventName,
+            string eventDescription,
+            DateTime eventTime,
+            int? responseSetIndex)
+        {
+            if (responseSetIndex == null || responseSetIndex.Value >= ResponseSets.Length)
+            {
+                await context.RespondAsync("Invalid response set number");
+                return;
+            }
+            var responseSet = ResponseSets[responseSetIndex.Value];
+            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime, responseSet);
             var eventEmbed = new DiscordEmbedBuilder
             {
                 Title = $"{eventName} - {eventTime:ddd dd MMM yyyy @ h:mm tt}",
                 Description = eventDescription
             };
+            var responseSetString = string.Join(
+                ", ",
+                responseSet.Select(response => $"{response.ResponseName} - {response.Emoji}"));
+            eventEmbed.AddField("Responses", responseSetString);
 
             await context.RespondAsync($"{context.Member.Mention} - your event has been added!", embed: eventEmbed);
         }
