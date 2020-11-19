@@ -161,16 +161,14 @@ namespace DiscordBot.Commands
                 Title = "Response options"
             };
 
-
-            var i = 0;
-            foreach (var responseSet in ResponseSets)
+            for (var i = 0; i < ResponseSets.Length; i++)
             {
+                var responseSet = ResponseSets[i];
                 var responseSetString = string.Join(
                     ", ",
                     responseSet.Select(response => $"{response.ResponseName} - {response.Emoji}")
                 );
                 responseEmbed.AddField($"Response set {i}", responseSetString);
-                i += 1;
             }
 
             await context.RespondAsync(
@@ -189,7 +187,7 @@ namespace DiscordBot.Commands
             DateTime eventTime,
             int? responseSetIndex)
         {
-            if (responseSetIndex == null || responseSetIndex.Value >= ResponseSets.Length)
+            if (responseSetIndex == null || responseSetIndex.Value >= ResponseSets.Length || responseSetIndex.Value < 0)
             {
                 await context.RespondAsync("Invalid response set number");
                 return;
