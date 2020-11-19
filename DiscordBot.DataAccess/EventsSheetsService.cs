@@ -1,16 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using DiscordBot.DataAccess.Exceptions;
-using Google;
 using DiscordBot.DataAccess.Models;
-using Google.Apis.Auth.OAuth2;
-using Google.Apis.Services;
-using Google.Apis.Sheets.v4;
-using Google.Apis.Sheets.v4.Data;
-using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 
 namespace DiscordBot.DataAccess
 {
@@ -41,16 +33,18 @@ namespace DiscordBot.DataAccess
         Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId);
     }
 
-    public class EventsSheetsService : UnsafeEventsSheetsService
+    public class EventsSheetsService : IEventsSheetsService
     {
         private readonly SemaphoreSlim sheetsSemaphore;
+        private readonly UnsafeEventsSheetsService eventsSheetsService;
 
         public EventsSheetsService()
         {
             sheetsSemaphore = new SemaphoreSlim(1);
+            eventsSheetsService = new UnsafeEventsSheetsService();
         }
 
-        public override async Task AddEventAsync(
+        public async Task AddEventAsync(
             string name,
             string description,
             DateTime time,
@@ -60,7 +54,7 @@ namespace DiscordBot.DataAccess
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                await base.AddEventAsync(name, description, time, responses);
+                await eventsSheetsService.AddEventAsync(name, description, time, responses);
             }
             finally
             {
@@ -68,7 +62,7 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task EditEventAsync(
+        public async Task EditEventAsync(
             int eventKey,
             string? description = null,
             string? name = null,
@@ -78,7 +72,7 @@ namespace DiscordBot.DataAccess
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                await base.EditEventAsync(eventKey, description, name, time);
+                await eventsSheetsService.EditEventAsync(eventKey, description, name, time);
             }
             finally
             {
@@ -86,12 +80,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
+        public async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                await base.AddMessageIdToEventAsync(eventKey, messageId);
+                await eventsSheetsService.AddMessageIdToEventAsync(eventKey, messageId);
             }
             finally
             {
@@ -99,12 +93,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task RemoveEventAsync(int eventKey)
+        public async Task RemoveEventAsync(int eventKey)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                await base.RemoveEventAsync(eventKey);
+                await eventsSheetsService.RemoveEventAsync(eventKey);
             }
             finally
             {
@@ -112,12 +106,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task<DiscordEvent> GetEventAsync(int eventKey)
+        public async Task<DiscordEvent> GetEventAsync(int eventKey)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                return await base.GetEventAsync(eventKey);
+                return await eventsSheetsService.GetEventAsync(eventKey);
             }
             finally
             {
@@ -125,12 +119,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId)
+        public async Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                return await base.GetEventFromMessageIdAsync(messageId);
+                return await eventsSheetsService.GetEventFromMessageIdAsync(messageId);
             }
             finally
             {
@@ -138,12 +132,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
+        public async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                return await base.ListEventsAsync();
+                return await eventsSheetsService.ListEventsAsync();
             }
             finally
             {
@@ -151,12 +145,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
+        public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                await base.AddResponseForUserAsync(eventKey, userId, responseEmoji);
+                await eventsSheetsService.AddResponseForUserAsync(eventKey, userId, responseEmoji);
             }
             finally
             {
@@ -164,12 +158,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
+        public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                await base.ClearResponsesForUserAsync(eventKey, userId);
+                await eventsSheetsService.ClearResponsesForUserAsync(eventKey, userId);
             }
             finally
             {
@@ -177,12 +171,12 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public override async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
+        public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
         {
             try
             {
                 await sheetsSemaphore.WaitAsync();
-                return await base.GetSignupsByResponseAsync(eventId);
+                return await eventsSheetsService.GetSignupsByResponseAsync(eventId);
             }
             finally
             {

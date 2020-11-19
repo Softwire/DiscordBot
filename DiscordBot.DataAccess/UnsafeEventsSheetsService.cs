@@ -13,7 +13,7 @@ using static Google.Apis.Sheets.v4.SpreadsheetsResource.ValuesResource;
 
 namespace DiscordBot.DataAccess
 {
-    public class UnsafeEventsSheetsService : IEventsSheetsService
+    internal class UnsafeEventsSheetsService : IEventsSheetsService
     {
         private static readonly string[] scopes = { SheetsService.Scope.Spreadsheets };
         private static readonly string applicationName = "Softwire Discord Bot";
@@ -47,7 +47,7 @@ namespace DiscordBot.DataAccess
             metadataSheetId = GetMetadataSheetId();
         }
 
-        public virtual async Task AddEventAsync(
+        public async Task AddEventAsync(
             string name,
             string description,
             DateTime time,
@@ -84,7 +84,7 @@ namespace DiscordBot.DataAccess
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
-        public virtual async Task EditEventAsync(
+        public async Task EditEventAsync(
             int eventKey,
             string? description = null,
             string? name = null,
@@ -134,7 +134,7 @@ namespace DiscordBot.DataAccess
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
-        public virtual async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
+        public async Task AddMessageIdToEventAsync(int eventKey, ulong messageId)
         {
             var rowNumber = await GetEventRowNumberAsync(eventKey);
 
@@ -156,7 +156,7 @@ namespace DiscordBot.DataAccess
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
-        public virtual async Task RemoveEventAsync(int eventKey)
+        public async Task RemoveEventAsync(int eventKey)
         {
             var rowNumber = await GetEventRowNumberAsync(eventKey);
             var responseSheetId = await GetSheetIdFromTitleAsync(eventKey.ToString());
@@ -174,7 +174,7 @@ namespace DiscordBot.DataAccess
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
-        public virtual async Task<DiscordEvent> GetEventAsync(int eventKey)
+        public async Task<DiscordEvent> GetEventAsync(int eventKey)
         {
             var discordEvents = await ListEventsAsync();
 
@@ -187,7 +187,7 @@ namespace DiscordBot.DataAccess
             return result;
         }
 
-        public virtual async Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId)
+        public async Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId)
         {
             var discordEvents = await ListEventsAsync();
 
@@ -200,7 +200,7 @@ namespace DiscordBot.DataAccess
             return result;
         }
 
-        public virtual async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
+        public async Task<IEnumerable<DiscordEvent>> ListEventsAsync()
         {
             try
             {
@@ -236,7 +236,7 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public virtual async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
+        public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
         {
             var responseRowTask = GetResponseRowNumberAsync(eventKey, userId);
             var responseColumnsTask = GetEventResponseOptionsAsync(eventKey);
@@ -262,7 +262,7 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public virtual async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
+        public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
             var rowNumber = await GetResponseRowNumberAsync(eventKey, userId);
 
@@ -283,7 +283,7 @@ namespace DiscordBot.DataAccess
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
         }
 
-        public virtual async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
+        public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
         {
             var request = sheetsService.Spreadsheets.Values.Get(
                 spreadsheetId,
