@@ -266,7 +266,8 @@ namespace DiscordBot.Commands
         }
 
         [Command("edit")]
-        private async Task EditEvent(CommandContext context, 
+        private async Task EditEvent(
+            CommandContext context, 
             int eventKey, 
             string editField,
             DiscordEmbedBuilder? eventEmbed = null)
@@ -301,7 +302,8 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)",
+            await context.RespondAsync(
+                $"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)",
                 embed: eventEmbed);
             var confirmationResponse = await GetUserConfirmation(context);
             if (confirmationResponse == null || confirmationResponse == false)
