@@ -236,32 +236,6 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
-        {
-            var responseRowTask = GetResponseRowNumberAsync(eventKey, userId);
-            var responseColumnsTask = GetEventResponseOptionsAsync(eventKey);
-
-            await Task.WhenAll(responseRowTask, responseColumnsTask);
-            var responseRow = responseRowTask.Result;
-            var responseColumns = responseColumnsTask.Result;
-
-            if (!responseColumns.Any(response => response.Emoji == responseEmoji))
-            {
-                throw new ResponseNotFoundException(
-                    $"Response {responseEmoji} is not recognised for event {eventKey}"
-                );
-            }
-
-            if (responseRow == null)
-            {
-                await AddResponseForNewUserAsync(eventKey, userId, responseEmoji, responseColumns);
-            }
-            else
-            {
-                await AddResponseForExistingUserAsync(eventKey, responseRow.Value, responseEmoji, responseColumns);
-            }
-        }
-
 #pragma warning disable 1998 // Turn off compiler warning for synchronous unimplemented methods
         public async Task AddResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
         {
@@ -271,27 +245,6 @@ namespace DiscordBot.DataAccess
         {
         }
 #pragma warning restore 1998
-
-        public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
-        {
-            var rowNumber = await GetResponseRowNumberAsync(eventKey, userId);
-
-            // If the user has already cleared their responses/never signed up in the first place
-            if (rowNumber == null)
-            {
-                return;
-            }
-
-            var responseSheetId = await GetSheetIdFromTitleAsync(eventKey.ToString());
-
-            var requestParameters = new BatchUpdateSpreadsheetRequest()
-            {
-                Requests = new[] { SheetsServiceRequestsHelper.RemoveRow(responseSheetId, rowNumber.Value) }
-            };
-
-            var request = sheetsService.Spreadsheets.BatchUpdate(requestParameters, spreadsheetId);
-            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
-        }
 
         public async Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId)
         {

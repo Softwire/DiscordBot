@@ -27,10 +27,8 @@ namespace DiscordBot.DataAccess
         Task<DiscordEvent> GetEventFromMessageIdAsync(ulong messageId);
         Task<IEnumerable<DiscordEvent>> ListEventsAsync();
 
-        Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji);
         Task AddResponseBatchAsync(IEnumerable<ResponseReaction> reactions);
         Task ClearResponseBatchAsync(IEnumerable<ResponseReaction> reactions);
-        Task ClearResponsesForUserAsync(int eventKey, ulong userId);
 
         Task<Dictionary<EventResponse, IEnumerable<ulong>>> GetSignupsByResponseAsync(int eventId);
     }
@@ -147,19 +145,6 @@ namespace DiscordBot.DataAccess
             }
         }
 
-        public async Task AddResponseForUserAsync(int eventKey, ulong userId, string responseEmoji)
-        {
-            try
-            {
-                await sheetsSemaphore.WaitAsync();
-                await eventsSheetsService.AddResponseForUserAsync(eventKey, userId, responseEmoji);
-            }
-            finally
-            {
-                sheetsSemaphore.Release();
-            }
-        }
-
         public async Task AddResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
         {
             try
@@ -179,19 +164,6 @@ namespace DiscordBot.DataAccess
             {
                 await sheetsSemaphore.WaitAsync();
                 await eventsSheetsService.ClearResponseBatchAsync(reactions);
-            }
-            finally
-            {
-                sheetsSemaphore.Release();
-            }
-        }
-
-        public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
-        {
-            try
-            {
-                await sheetsSemaphore.WaitAsync();
-                await eventsSheetsService.ClearResponsesForUserAsync(eventKey, userId);
             }
             finally
             {
