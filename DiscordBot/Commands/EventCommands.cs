@@ -134,13 +134,11 @@ namespace DiscordBot.Commands
 
             var eventEmbed = new DiscordEmbedBuilder
             {
-                Title = eventName,
-                Description = eventDescription,
-                Color = new DiscordColor(0xFFFFFF),
-                Timestamp = eventTime
+                Title = $"{eventName} - {eventTime:ddd dd MMM yyyy @ h:mm tt}",
+                Description = eventDescription
             };
 
-            await context.RespondAsync(embed: eventEmbed);
+            await context.RespondAsync($"{context.Member.Mention} - your event has been added!", embed: eventEmbed);
         }
 
         [Command("remove")]
@@ -361,9 +359,12 @@ namespace DiscordBot.Commands
 
                 return new DiscordEmbedBuilder
                 {
-                    Title = discordEvent.Name,
+                    Title = $"{discordEvent.Name} - {discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}",
                     Description = discordEvent.Description,
-                    Timestamp = new DateTimeOffset(discordEvent.Time)
+                    Footer = new DiscordEmbedBuilder.EmbedFooter
+                    {
+                        Text = $"event key: {discordEvent.Key}"
+                    }
                 };
             }
             catch (EventNotFoundException)
