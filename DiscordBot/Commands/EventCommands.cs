@@ -144,14 +144,21 @@ namespace DiscordBot.Commands
         [Command("remove")]
         public async Task RemoveEvent(CommandContext context)
         {
-            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
+            await context.RespondAsync(
+                $"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context);
             if (eventKey == null)
             {
                 return;
             }
 
-            var discordEmbed = await GetEventEmbed(context, eventKey.Value);
+            await RemoveEvent(context, eventKey.Value);
+        }
+
+        [Command("remove")]
+        public async Task RemoveEvent(CommandContext context, int eventKey)
+        {
+            var discordEmbed = await GetEventEmbed(context, eventKey);
             if (discordEmbed == null)
             {
                 return;
@@ -169,7 +176,7 @@ namespace DiscordBot.Commands
             try
             {
                 await eventsSheetsService
-                    .RemoveEventAsync(eventKey.Value);
+                    .RemoveEventAsync(eventKey);
                 await context.RespondAsync($"{context.Member.Mention} - poof! It's gone.");
             }
             catch (EventNotFoundException)
@@ -188,15 +195,22 @@ namespace DiscordBot.Commands
                 return;
             }
             
-            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            await ShowEvent(context, eventKey.Value);
+        }
+
+        [Command("show")]
+        private async Task ShowEvent(CommandContext context, int eventKey)
+        {
+            var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
             {
                 return;
             }
-            
+
             await context.RespondAsync($"{context.Member.Mention} - here is the event", embed: eventEmbed);
         }
-  
+
+        [Command("list")]
         public async Task ListEvents(CommandContext context)
         {
             var eventsList = await eventsSheetsService.ListEventsAsync();
@@ -217,6 +231,7 @@ namespace DiscordBot.Commands
             await context.RespondAsync($"{context.Member.Mention} - here are all created events.", embed: eventsListEmbed);
         }
 
+        [Command("edit")]
         public async Task EditEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -226,7 +241,13 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            await EditEvent(context, eventKey.Value);
+        }
+        
+        [Command("edit")]
+        private async Task EditEvent(CommandContext context, int eventKey)
+        {
+            var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
             {
                 return;
@@ -241,9 +262,24 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await EditEventField(context, eventKey.Value, editField, eventEmbed);
+            await EditEvent(context, eventKey, editField, eventEmbed);
         }
 
+        [Command("edit")]
+        private async Task EditEvent(CommandContext context, 
+            int eventKey, 
+            string editField,
+            DiscordEmbedBuilder? eventEmbed = null)
+        {
+            eventEmbed ??= await GetEventEmbed(context, eventKey);
+            if (eventEmbed == null)
+            {
+                return;
+            }
+            await EditEventField(context, eventKey, editField, eventEmbed);
+        }
+
+        [Command("start")]
         private async Task CreateSignupSheet(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -253,20 +289,27 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            await CreateSignupSheet(context, eventKey.Value);
+        }
+
+        [Command("start")]
+        private async Task CreateSignupSheet(CommandContext context, int eventKey)
+        {
+            var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
             {
                 return;
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)", embed: eventEmbed);
+            await context.RespondAsync($"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)",
+                embed: eventEmbed);
             var confirmationResponse = await GetUserConfirmation(context);
             if (confirmationResponse == null || confirmationResponse == false)
             {
                 return;
             }
 
-            await SendSignupMessage(context, eventKey.Value);
+            await SendSignupMessage(context, eventKey);
         }
 
         private async Task SendSignupMessage(CommandContext context, int eventKey)
