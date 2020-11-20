@@ -76,9 +76,8 @@ namespace DiscordBot
             }
 
             _ = Task.Run(async () =>
-            {
-                await ProcessReaction(eventArguments, eventsSheetsService, reactionBuffer);
-            });
+                await ProcessReaction(eventArguments, eventsSheetsService, reactionBuffer)
+            );
 
             return Task.CompletedTask;
         }
@@ -104,7 +103,6 @@ namespace DiscordBot
             MessageReactionAddEventArgs eventArguments,
             IEventsSheetsService eventsSheetsService)
         {
-
             var discordEvent = await GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id, eventsSheetsService);
             if (discordEvent != null)
             {
