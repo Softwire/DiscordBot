@@ -127,6 +127,101 @@ namespace DiscordBot.DataAccess
             };
         }
 
+        internal static IEnumerable<Request> AddResponseRow(
+            int responseSheetId,
+            IList<EventResponse> responsesOptions,
+            ulong userId,
+            IEnumerable<string> responses
+        )
+        {
+            var newRowValues = responsesOptions
+                .Select(response => responses.Contains(response.Emoji) ? 1.0 : 0)
+                .ToList();
+
+            // If none of the user's emoji are recognised, don't add a user response row
+            if (newRowValues.All(responseBit => responseBit == 0))
+            {
+                return Enumerable.Empty<Request>();
+            }
+
+            var newRow = newRowValues
+                .Select(MakeCellData)
+                .Prepend(MakeCellData(userId.ToString()));
+
+            var appendCellsRequest = new AppendCellsRequest()
+            {
+                Rows = new[]
+                {
+                    new RowData()
+                    {
+                        Values = newRow.ToList()
+                    }
+                },
+                SheetId = responseSheetId,
+                Fields = "*"
+            };
+
+            return new[] { new Request() { AppendCells = appendCellsRequest } };
+        }
+
+        internal static IEnumerable<Request> UpdateResponseRow(
+            int responseSheetId,
+            IList<EventResponse> responsesOptions,
+            int responseRow,
+            IEnumerable<string> responses
+        )
+        {
+            var responseColumnList = responsesOptions.ToList();
+            var indices = responses
+                .Select(emoji =>
+                    responseColumnList.FindIndex(eventResponse => eventResponse.Emoji == emoji)
+                )
+                .Where(index => index != -1); // If the emoji wasn't found, drop this update
+
+            var cellData = MakeCellData(1);
+            return indices.Select(index => UpdateCell(responseSheetId, responseRow - 1, index + 1, cellData));
+        }
+
+        internal static IEnumerable<Request> AddUserResponsesRequests(
+            int sheetId,
+            IList<EventResponse> responsesOptions,
+            ValueRange userIdColumn,
+            ulong userId,
+            IEnumerable<string> responses
+        )
+        {
+            var userRow = SheetsServiceParsingHelper.FindRowNumberOfKey(
+                userIdColumn,
+                UnsafeEventsSheetsService.UserIdColumn,
+                2,
+                userId
+            );
+
+            if (userRow == null)
+            {
+                return AddResponseRow(sheetId, responsesOptions, userId, responses);
+            }
+
+            return UpdateResponseRow(sheetId, responsesOptions, userRow.Value, responses);
+        }
+
+        internal static IEnumerable<Request> ClearUserResponsesRequests(
+            int sheetId,
+            ValueRange userIdColumn,
+            IEnumerable<ulong> users
+        )
+        {
+            return users
+                .Select(user => SheetsServiceParsingHelper.FindRowNumberOfKey(
+                    userIdColumn,
+                    UnsafeEventsSheetsService.UserIdColumn,
+                    2,
+                    user
+                ))
+                .Where(userRow => userRow != null)
+                .Select(userRow => RemoveRow(sheetId, userRow!.Value));
+        }
+
         internal static T ExecuteRequestsWithRetries<T>(ClientServiceRequest<T> request) =>
             ExecuteRequestsWithRetriesAsync(request).Result;
 
@@ -169,6 +264,31 @@ namespace DiscordBot.DataAccess
             {
                 UserEnteredValue = new ExtendedValue() { StringValue = stringValue }
             };
+        }
+
+        private static Request UpdateCell(int sheetId, int row, int col, CellData value)
+        {
+            var updateCellsRequest = new UpdateCellsRequest()
+            {
+                Range = new GridRange()
+                {
+                    StartRowIndex = row,
+                    EndRowIndex = row + 1,
+                    StartColumnIndex = col,
+                    EndColumnIndex = col + 1,
+                    SheetId = sheetId
+                },
+                Rows = new[]
+                {
+                    new RowData()
+                    {
+                        Values = new[] { value }
+                    }
+                },
+                Fields = "*"
+            };
+
+            return new Request() { UpdateCells = updateCellsRequest };
         }
     }
 }

@@ -262,15 +262,137 @@ namespace DiscordBot.DataAccess
             }
         }
 
-#pragma warning disable 1998 // Turn off compiler warning for synchronous unimplemented methods
         public async Task AddResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
         {
+            // Get the sheets to find their IDs when updating
+            var sheets = await GetSheets();
+
+            // Rearrange the list of reactions into a dictionary where:
+            // reactionDictionary[eventKey][userId] = list of that user's reactions to that event
+            var eventList = await ListEventsAsync();
+            var reactionDictionary = CreateReactionDictionary(eventList, reactions);
+            var eventKeyList = reactionDictionary.Keys.ToList();
+
+            // If there are no reactions to recognised events, there is no work to be done
+            if (!eventKeyList.Any())
+            {
+                return;
+            }
+
+            // Make the requests to find which rows users' already have response information on,
+            // and the set of response options for each event.
+            // Each event sheet has two requests in the batch, for these two bits of information, grouped by event key
+            var responseSheetsRequest = sheetsService.Spreadsheets.Values.BatchGet(spreadsheetId);
+            responseSheetsRequest.Ranges = eventKeyList.SelectMany(eventKey =>
+                new[]
+                {
+                    $"{eventKey}!{UserIdColumn.Letter}:{UserIdColumn.Letter}",
+                    $"{eventKey}!1:2"
+                }
+            ).ToList();
+            responseSheetsRequest.ValueRenderOption = BatchGetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var responseSheetsResponse =
+                await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(responseSheetsRequest);
+
+            // Make the update requests, zipping in the pair of relevant responses for each event's response sheet
+            var updateRequests = eventKeyList
+                .Zip(
+                    responseSheetsResponse.ValueRanges.Where((userIdColumn, i) => i % 2 == 0),
+                    (eventKey, userIdColumn) => new { eventKey, userIdColumn }
+                )
+                .Zip(
+                    responseSheetsResponse.ValueRanges.Where((userIdColumn, i) => i % 2 == 1),
+                    (pair, responsesOptions) => new { pair.eventKey, pair.userIdColumn, responsesOptions }
+                )
+                .SelectMany(triple =>
+                {
+                    var eventKey = triple.eventKey;
+                    var sheetId = FindSheetId(sheets, eventKey.ToString());
+
+                    var responsesOptions =
+                        SheetsServiceParsingHelper.ParseResponseHeaders(triple.responsesOptions, eventKey).ToList();
+
+                    var eventUpdates = reactionDictionary[eventKey];
+
+                    return eventUpdates.SelectMany(entry => SheetsServiceRequestsHelper.AddUserResponsesRequests(
+                        sheetId,
+                        responsesOptions,
+                        triple.userIdColumn,
+                        entry.Key,           // User ID
+                        entry.Value          // User's responses
+                    ));
+                });
+
+            var batchUpdateRequest = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = updateRequests.ToList()
+            };
+            // If there are no updates to be made, don't send a request to Google Sheets
+            if (batchUpdateRequest.Requests.Count == 0)
+            {
+                return;
+            }
+
+            var batchRequest = sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadsheetId);
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(batchRequest);
         }
 
         public async Task ClearResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
         {
+            // Get the sheets to find their IDs when updating
+            var sheets = await GetSheets();
+
+            // Rearrange the list of reactions into a dictionary where:
+            // usersToClearDictionary[eventKey] = list of users to have their responses cleared for that event
+            // where that list only contains user IDs at most once (ie has distinct elements)
+            var eventList = await ListEventsAsync();
+            var usersToClearDictionary = CreateReactionDictionary(eventList, reactions).ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value.Keys.Distinct()
+            );
+            var eventKeyList = usersToClearDictionary.Keys.ToList();
+
+            // If there are no reactions to recognised events, there is no work to be done
+            if (!eventKeyList.Any())
+            {
+                return;
+            }
+
+            // Make the requests to find which rows the users' response information are on
+            // Each event sheet has one request in the batch
+            var responseSheetsRequest = sheetsService.Spreadsheets.Values.BatchGet(spreadsheetId);
+            responseSheetsRequest.Ranges = eventKeyList.Select(eventKey =>
+                $"{eventKey}!{UserIdColumn.Letter}:{UserIdColumn.Letter}"
+            ).ToList();
+            responseSheetsRequest.ValueRenderOption = BatchGetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var responseSheetsResponse =
+                await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(responseSheetsRequest);
+
+            // Make the update requests, zipping in the column of IDs for each event's response sheet
+            var updateRequests = eventKeyList
+                .Zip(
+                    responseSheetsResponse.ValueRanges,
+                    (eventKey, userIdColumn) => new { eventKey, userIdColumn }
+                )
+                .SelectMany(pair => SheetsServiceRequestsHelper.ClearUserResponsesRequests(
+                    FindSheetId(sheets, pair.eventKey.ToString()),
+                    pair.userIdColumn,
+                    usersToClearDictionary[pair.eventKey]
+                ));
+
+            var batchUpdateRequest = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = updateRequests.ToList()
+            };
+            // If there are no updates to be made, don't send a request to Google Sheets
+            if (batchUpdateRequest.Requests.Count == 0)
+            {
+                return;
+            }
+
+            var batchRequest = sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadsheetId);
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(batchRequest);
         }
-#pragma warning restore 1998
 
         public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
@@ -302,12 +424,7 @@ namespace DiscordBot.DataAccess
             request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
             var response = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
-            if (response == null || response.Values.Count < 2)
-            {
-                throw new EventInitialisationException("Sign up sheet is empty");
-            }
-
-            var responseColumns = SheetsServiceParsingHelper.ParseResponseHeaders(response.Values).ToList();
+            var responseColumns = SheetsServiceParsingHelper.ParseResponseHeaders(response, eventId).ToList();
 
             var result = responseColumns.ToDictionary(
                 eventResponse => eventResponse,
@@ -375,17 +492,18 @@ namespace DiscordBot.DataAccess
             }
         }
 
+        private async Task<IEnumerable<Sheet>> GetSheets()
+        {
+            var sheetListRequest = sheetsService.Spreadsheets.Get(spreadsheetId);
+            var spreadsheet = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(sheetListRequest);
+            return spreadsheet.Sheets;
+        }
+
         private int GetSheetIdFromTitle(string title) =>
             GetSheetIdFromTitleAsync(title).Result;
 
-        private async Task<int> GetSheetIdFromTitleAsync(string title)
-        {
-            var request = sheetsService.Spreadsheets.Get(spreadsheetId);
-            var spreadsheet = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
-            var sheets = spreadsheet.Sheets;
-
-            return FindSheetId(sheets, title);
-        }
+        private async Task<int> GetSheetIdFromTitleAsync(string title) =>
+            FindSheetId(await GetSheets(), title);
 
         private int FindSheetId(IEnumerable<Sheet> sheets, string title)
         {
@@ -418,33 +536,13 @@ namespace DiscordBot.DataAccess
             ulong key
         )
         {
-            try
-            {
-                var request = sheetsService.Spreadsheets.Values.Get(
-                    spreadsheetId,
-                    $"{sheetName}!{keyColumn.Letter}:{keyColumn.Letter}"
-                );
-                var response = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
+            var request = sheetsService.Spreadsheets.Values.Get(
+                spreadsheetId,
+                $"{sheetName}!{keyColumn.Letter}:{keyColumn.Letter}"
+            );
+            var response = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
-                if (response == null || response.Values.Count < numberOfHeaderRows)
-                {
-                    throw new EventNotFoundException($"Event key {key} not recognised");
-                }
-
-                var rowNumber = response.Values
-                    .Skip(numberOfHeaderRows)
-                    .Select((values, index) => (values, index))
-                    .First(row => ulong.Parse((string)row.values[keyColumn.Index]) == key);
-
-                // Extract row number, plus a correction factor:
-                // Correct for skipping the header
-                // These lists are 0 indexed, but Sheets index from 1
-                return rowNumber.index + numberOfHeaderRows + 1;
-            }
-            catch (InvalidOperationException)
-            {
-                return null;
-            }
+            return SheetsServiceParsingHelper.FindRowNumberOfKey(response, keyColumn, numberOfHeaderRows, key);
         }
 
         private async Task<int> GetEventRowNumberAsync(int eventKey)
@@ -475,29 +573,15 @@ namespace DiscordBot.DataAccess
 
         private async Task<IEnumerable<EventResponse>> GetEventResponseOptionsAsync(int eventKey)
         {
-            try
-            {
-                var request = sheetsService.Spreadsheets.Values.Get(
-                    spreadsheetId,
-                    $"{eventKey}!1:2"
-                );
-                request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var request = sheetsService.Spreadsheets.Values.Get(
+                spreadsheetId,
+                $"{eventKey}!1:2"
+            );
+            request.ValueRenderOption = GetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
 
-                var sheetsResponse = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
+            var sheetsResponse = await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
 
-                if (sheetsResponse == null || sheetsResponse.Values.Count < 2)
-                {
-                    throw new EventsSheetsInitialisationException($"Event sheet {eventKey} is empty");
-                }
-
-                return SheetsServiceParsingHelper.ParseResponseHeaders(sheetsResponse.Values);
-            }
-            catch (GoogleApiException)
-            {
-                throw new EventInitialisationException(
-                    $"Could not find event responses for event {eventKey}. Has it been published yet?"
-                );
-            }
+            return SheetsServiceParsingHelper.ParseResponseHeaders(sheetsResponse, eventKey);
         }
 
         private async Task AddResponseForNewUserAsync(
@@ -544,6 +628,51 @@ namespace DiscordBot.DataAccess
             request.ValueInputOption = UpdateRequest.ValueInputOptionEnum.RAW;
 
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(request);
+        }
+
+        private Dictionary<int, Dictionary<ulong, List<string>>> CreateReactionDictionary(
+            IEnumerable<DiscordEvent> eventList,
+            IEnumerable<ResponseReaction> reactions
+        )
+        {
+            var reactionList = reactions.ToList();
+            var messageIds = reactionList.Select(reaction => reaction.MessageId).Distinct();
+
+            var messageIdDictionary = eventList
+                .Where(discordEvent =>
+                    discordEvent.MessageId != null && messageIds.Contains(discordEvent.MessageId.Value)
+                )
+                .ToDictionary(
+                    discordEvent => discordEvent.MessageId!.Value,
+                    discordEvent => discordEvent.Key
+                );
+
+            var eventKeyList = messageIdDictionary.Values.ToList();
+
+            var reactionDictionary =
+                eventKeyList.ToDictionary(
+                    eventKey => eventKey,
+                    _ => new Dictionary<ulong, List<string>>()
+                );
+
+            reactionList.ForEach(reaction =>
+            {
+                // If message ID is not known, ignore this reaction
+                if (!messageIdDictionary.ContainsKey(reaction.MessageId))
+                {
+                    return;
+                }
+
+                var eventResponses = reactionDictionary[messageIdDictionary[reaction.MessageId]];
+
+                if (!eventResponses.ContainsKey(reaction.UserId))
+                {
+                    eventResponses[reaction.UserId] = new List<string>();
+                }
+                eventResponses[reaction.UserId].Add(reaction.Emoji);
+            });
+
+            return reactionDictionary;
         }
     }
 }

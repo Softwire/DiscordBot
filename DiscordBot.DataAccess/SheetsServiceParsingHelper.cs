@@ -1,6 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using DiscordBot.DataAccess.Exceptions;
 using DiscordBot.DataAccess.Models;
+using Google.Apis.Sheets.v4.Data;
 
 namespace DiscordBot.DataAccess
 {
@@ -27,10 +30,15 @@ namespace DiscordBot.DataAccess
             return ulong.Parse(cellContents);
         }
 
-        public static IEnumerable<EventResponse> ParseResponseHeaders(IList<IList<object>> sheetsResponse)
+        public static IEnumerable<EventResponse> ParseResponseHeaders(ValueRange sheetsResponse, int eventKey)
         {
-            return sheetsResponse[0]
-                .Zip(sheetsResponse[1])
+            if (sheetsResponse == null || sheetsResponse.Values.Count < 2)
+            {
+                throw new EventsSheetsInitialisationException($"Event sheet {eventKey} is empty");
+            }
+
+            return sheetsResponse.Values[0]
+                .Zip(sheetsResponse.Values[1])
                 .Skip(1) // Skip titles column
                 .Select<(object emoji, object name), EventResponse>(response =>
                     new EventResponse((string)response.emoji, (string)response.name)
@@ -50,6 +58,36 @@ namespace DiscordBot.DataAccess
                     (string)pair.cell == "1"
                 )
                 .Select(pair => (pair.response, userId));
+        }
+
+        public static int? FindRowNumberOfKey(
+            ValueRange response,
+            SheetsColumn keyColumn,
+            int numberOfHeaderRows,
+            ulong key
+        )
+        {
+            if (response == null || response.Values.Count < numberOfHeaderRows)
+            {
+                throw new EventNotFoundException($"Event key {key} not recognised");
+            }
+
+            try
+            {
+                var rowNumber = response.Values
+                    .Skip(numberOfHeaderRows)
+                    .Select((values, index) => (values, index))
+                    .First(row => ulong.Parse((string)row.values[keyColumn.Index]) == key);
+
+                // Extract row number, plus a correction factor:
+                // Correct for skipping the header
+                // These lists are 0 indexed, but Sheets index from 1
+                return rowNumber.index + numberOfHeaderRows + 1;
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
         }
     }
 }
