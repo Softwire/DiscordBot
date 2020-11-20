@@ -9,9 +9,11 @@ have the ability to add the bot to a server in which you have the "Manage Server
 
 ## Useful links
 
-[DSharpPLus API](https://dsharpplus.github.io/)
-
-[Discord Developer Portal](https://discord.com/developers/applications)
+* [DSharpPLus API](https://dsharpplus.github.io/)
+* [Discord Developer Portal](https://discord.com/developers/applications)
+* [Google Sheets API](https://developers.google.com/sheets/api/quickstart/dotnet)
+* [Google Sheets .NET Client source](https://github.com/googleapis/google-api-dotnet-client/blob/master/Src/Generated/Google.Apis.Sheets.v4/Google.Apis.Sheets.v4.cs)
+(for when the API docs don't explain how to do something using the .NET client)
 
 ## TODO List
 
@@ -47,9 +49,11 @@ have the ability to add the bot to a server in which you have the "Manage Server
 - [x] Allow people to unsign from events
 - [x] Hard code in response sets for events
 - [x] Make bot post events in separate channel
+- [x] Use a Discord role to control who can issue bot commands
 - [ ] Notify users that their event is going to start
 - [ ] Allow admins to forcibly sign people up to events with the discord bot
 - [ ] Allow creation of recurring events
+- [ ] Add handling for multiple timezones (eg. Budapest and London)
 
 ### Complications that need to be addressed
 
@@ -61,7 +65,7 @@ have the ability to add the bot to a server in which you have the "Manage Server
 
 - [ ] Allow the creation of custom response sets with the bot
 - [ ] Notify users if the event they signed up to has changed
-- [ ] Find a suitable alternative to Google Sheets
+- [ ] Switch from using Google Sheets to a database with transactions, ACID properties, no API quotas, etc.
 - [ ] Allow users to disable bot reminder notifications
 - [ ] Add pagination to event lists (limit 5 per page)
  
@@ -76,9 +80,23 @@ have the ability to add the bot to a server in which you have the "Manage Server
 
 ### Getting Google Sheets credentials
 
-1. Talk to someone on the team (currently Benji) who can give you Google sheets credentials, and ask for them.
-They will be given to you on [Zoho](https://vault.zoho.com/online/main), so raise a HYP request
-to get access to the "Morale Event Discord Bot" chamber
+1. Add yourself as an editor to the softwire-discord-bot project on Google Cloud Platform, or get someone else who is an
+editor to follow the subsequent steps.
+    1. Login into the "Google Developers Project Manager" account (in the Zoho chamber)
+    2. In IAM & Admin -> IAM, add your Google account as an editor
+2. In IAM & Admin -> Service accounts, create a new service account
+    1. Name the account with some reference to your name ideally
+    2. Don't give it any access, roles, or give users special access (so just click continue and done)
+3. Click on your newly made service account, and add a key (Add key -> create new key -> JSON -> Create)
+4. A JSON credentials file will download. You will need this to run the bot locally.
+5. Create a Google Sheet of the right format (easiest just to copy someone else's test sheet)
+6. Add the email address of your service account as an editor to this sheet using the Google Sheets "Share"
+functionality.
+7. You need to find the spreadsheet ID of the sheet you made. At the moment, this is easiest extracted from the URL
+of the webpage of the Google Sheets editor, but this might be different in the future so Google it. Currently,
+that URL is of the form: `https://docs.google.com/spreadsheets/d/{spreadSheetId}/edit`, where `{spreadSheetId}` is
+you spreadsheet ID. Note this, you will need it to run the bot locally.
+8. Done! You should be able to see the changes made by the bot to the sheet using the Google Sheets website.
 
 ### Running the bot locally
 
@@ -87,10 +105,10 @@ to get access to the "Morale Event Discord Bot" chamber
 // Found on Discord for developers
 RELEASE_BOT_TOKEN
 
-// Given to you on Zoho
+// Found from the URL of your sheet, found when getting Google Sheets credentials
 GOOGLE_SHEET_ID
 
-// Found in the json file, also from Zoho
+// Found in the JSON file that you downloaded when getting Google Sheets credentials
 GOOGLE_CLIENT_EMAIL
 GOOGLE_PROJECT_ID
 GOOGLE_PRIVATE_KEY_ID
