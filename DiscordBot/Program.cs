@@ -89,10 +89,10 @@ namespace DiscordBot
 
             switch (eventArguments.Emoji.GetDiscordName())
             {
-                case (EventCommands.ClearReaction):
+                case (":arrows_counterclockwise:"):
                     await UpdateSignupMessage(eventArguments, discordEvent, eventsSheetsService);
                     break;
-                case (":no_entry_sign:"):
+                case (EventCommands.ClearReaction):
                     await eventsSheetsService.ClearResponsesForUserAsync(discordEvent.Key, eventArguments.User.Id);
                     await client.SendMessageAsync(
                         dmChannel,
