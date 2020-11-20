@@ -48,16 +48,17 @@ namespace DiscordBot
             var reactionBuffer = new ReactionBuffer(eventsSheetsService);
 
             discord.UseInteractivity(new InteractivityConfiguration());
-            discord.MessageReactionAdded += async (client, eventArguments) =>
+            discord.MessageReactionAdded += (client, eventArguments) =>
             {
-                await OnMessageReactionAdded(client, eventArguments, eventsSheetsService, reactionBuffer);
+                OnMessageReactionAdded(client, eventArguments, eventsSheetsService, reactionBuffer);
+                return Task.CompletedTask;
             };
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
         }
 
-        private static Task OnMessageReactionAdded(
+        private static void OnMessageReactionAdded(
             DiscordClient client,
             MessageReactionAddEventArgs eventArguments,
             IEventsSheetsService eventsSheetsService,
@@ -66,20 +67,18 @@ namespace DiscordBot
             // Skip if event was triggered by the bot
             if (eventArguments.User == client.CurrentUser)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             // Skip if reaction is not in the signup channel
             if (eventArguments.Channel.Name != EventCommands.SignupChannelName)
             {
-                return Task.CompletedTask;
+                return;
             }
 
             _ = Task.Run(async () =>
                 await ProcessReaction(eventArguments, eventsSheetsService, reactionBuffer)
             );
-
-            return Task.CompletedTask;
         }
 
         private static async Task ProcessReaction(
