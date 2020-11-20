@@ -337,11 +337,62 @@ namespace DiscordBot.DataAccess
             await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(batchRequest);
         }
 
-#pragma warning disable 1998 // Turn off compiler warning for synchronous unimplemented methods
         public async Task ClearResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
         {
+            // Get the sheets to find their IDs when updating
+            var sheets = await GetSheets();
+
+            // Rearrange the list of reactions into a dictionary where:
+            // usersToClearDictionary[eventKey] = list of users to have their responses cleared for that event
+            // where that list only contains user IDs at most once (ie has distinct elements)
+            var eventList = await ListEventsAsync();
+            var usersToClearDictionary = CreateReactionDictionary(eventList, reactions).ToDictionary(
+                entry => entry.Key,
+                entry => entry.Value.Keys.Distinct()
+            );
+            var eventKeyList = usersToClearDictionary.Keys.ToList();
+
+            // If there are no reactions to recognised events, there is no work to be done
+            if (!eventKeyList.Any())
+            {
+                return;
+            }
+
+            // Make the requests to find which rows the users' response information are on
+            // Each event sheet has one request in the batch
+            var responseSheetsRequest = sheetsService.Spreadsheets.Values.BatchGet(spreadsheetId);
+            responseSheetsRequest.Ranges = eventKeyList.Select(eventKey =>
+                $"{eventKey}!{UserIdColumn.Letter}:{UserIdColumn.Letter}"
+            ).ToList();
+            responseSheetsRequest.ValueRenderOption = BatchGetRequest.ValueRenderOptionEnum.FORMATTEDVALUE;
+            var responseSheetsResponse =
+                await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(responseSheetsRequest);
+
+            // Make the update requests, zipping in the column of IDs for each event's response sheet
+            var updateRequests = eventKeyList
+                .Zip(
+                    responseSheetsResponse.ValueRanges,
+                    (eventKey, userIdColumn) => new { eventKey, userIdColumn }
+                )
+                .SelectMany(pair => SheetsServiceRequestsHelper.ClearUserResponsesRequests(
+                    FindSheetId(sheets, pair.eventKey.ToString()),
+                    pair.userIdColumn,
+                    usersToClearDictionary[pair.eventKey]
+                ));
+
+            var batchUpdateRequest = new BatchUpdateSpreadsheetRequest()
+            {
+                Requests = updateRequests.ToList()
+            };
+            // If there are no updates to be made, don't send a request to Google Sheets
+            if (batchUpdateRequest.Requests.Count == 0)
+            {
+                return;
+            }
+
+            var batchRequest = sheetsService.Spreadsheets.BatchUpdate(batchUpdateRequest, spreadsheetId);
+            await SheetsServiceRequestsHelper.ExecuteRequestsWithRetriesAsync(batchRequest);
         }
-#pragma warning restore 1998
 
         public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {

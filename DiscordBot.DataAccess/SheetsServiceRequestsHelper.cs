@@ -205,6 +205,23 @@ namespace DiscordBot.DataAccess
             return UpdateResponseRow(sheetId, responsesOptions, userRow.Value, responses);
         }
 
+        internal static IEnumerable<Request> ClearUserResponsesRequests(
+            int sheetId,
+            ValueRange userIdColumn,
+            IEnumerable<ulong> users
+        )
+        {
+            return users
+                .Select(user => SheetsServiceParsingHelper.FindRowNumberOfKey(
+                    userIdColumn,
+                    UnsafeEventsSheetsService.UserIdColumn,
+                    2,
+                    user
+                ))
+                .Where(userRow => userRow != null)
+                .Select(userRow => RemoveRow(sheetId, userRow!.Value));
+        }
+
         internal static T ExecuteRequestsWithRetries<T>(ClientServiceRequest<T> request) =>
             ExecuteRequestsWithRetriesAsync(request).Result;
 
