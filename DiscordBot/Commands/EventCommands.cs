@@ -279,20 +279,24 @@ namespace DiscordBot.Commands
         {
             var eventsList = await eventsSheetsService.ListEventsAsync();
 
+            var sortedEventsList = eventsList
+                .Where(x => x.Time > DateTime.Now)
+                .OrderBy(x => x.Time);
+
             var eventsListEmbed = new DiscordEmbedBuilder
             {
                 Title = "Events"
             };
 
-            foreach (var discordEvent in eventsList)
+            foreach (var discordEvent in sortedEventsList)
             {
                 eventsListEmbed.AddField(
                     $"{discordEvent.Key}) {discordEvent.Name}",
-                    $"{discordEvent.Time}"
+                    $"{discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}"
                 );
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - here are all created events.", embed: eventsListEmbed);
+            await context.RespondAsync($"{context.Member.Mention} - here are all upcoming events.", embed: eventsListEmbed);
         }
 
         [Command("edit")]
