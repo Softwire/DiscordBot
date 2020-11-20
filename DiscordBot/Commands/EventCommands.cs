@@ -3,6 +3,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DiscordBot.DataAccess;
 using DiscordBot.DataAccess.Exceptions;
+using DiscordBot.DataAccess.Models;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -38,6 +39,30 @@ namespace DiscordBot.Commands
         {
             "yes",
             "no"
+        };
+
+        private static readonly EventResponse[][] ResponseSets =
+        {
+            new[]
+            {
+                new EventResponse(":white_check_mark:", "Yes"),
+                new EventResponse(":grey_question:", "Maybe")
+            },
+
+            new[]
+            {
+                new EventResponse(":white_check_mark:", "Yes"),
+                new EventResponse(":money_with_wings:", "Need to buy it"),
+                new EventResponse(":grey_question:", "Maybe")
+            },
+
+            new[]
+            {
+                new EventResponse(":one:", "Option 1"),
+                new EventResponse(":two:", "Option 2"),
+                new EventResponse(":three:", "Option 3"),
+                new EventResponse(":four:", "Option 4")
+            }
         };
 
         private readonly IEventsSheetsService eventsSheetsService;
@@ -132,30 +157,74 @@ namespace DiscordBot.Commands
         [Command("create")] 
         public async Task CreateEvent(CommandContext context, string eventName, string eventDescription, DateTime eventTime)
         {
-            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime);
-
-            var eventEmbed = new DiscordEmbedBuilder
+            var responseEmbed = new DiscordEmbedBuilder
             {
-                Title = eventName,
-                Description = eventDescription,
-                Color = new DiscordColor(0xFFFFFF),
-                Timestamp = eventTime
+                Title = "Response options"
             };
 
-            await context.RespondAsync(embed: eventEmbed);
+            for (var i = 0; i < ResponseSets.Length; i++)
+            {
+                var responseSetString = string.Join(
+                    ", ",
+                    ResponseSets[i].Select(response => $"{response.ResponseName} - {response.Emoji}")
+                );
+                responseEmbed.AddField($"Response set {i}", responseSetString);
+            }
+
+            await context.RespondAsync(
+                $"Which response set would you like to use? (type the number)", 
+                embed: responseEmbed);
+            var responseSetIndex = await GetUserIntResponse(context);
+
+            await CreateEvent(context, eventName, eventDescription, eventTime, responseSetIndex);
+        }
+
+        [Command("create")]
+        public async Task CreateEvent(
+            CommandContext context,
+            string eventName,
+            string eventDescription,
+            DateTime eventTime,
+            int? responseSetIndex)
+        {
+            if (responseSetIndex == null || responseSetIndex.Value >= ResponseSets.Length || responseSetIndex.Value < 0)
+            {
+                await context.RespondAsync("Invalid response set number");
+                return;
+            }
+            var responseSet = ResponseSets[responseSetIndex.Value];
+            await eventsSheetsService.AddEventAsync(eventName, eventDescription, eventTime, responseSet);
+            var eventEmbed = new DiscordEmbedBuilder
+            {
+                Title = $"{eventName} - {eventTime:ddd dd MMM yyyy @ h:mm tt}",
+                Description = eventDescription
+            };
+            var responseSetString = string.Join(
+                ", ",
+                responseSet.Select(response => $"{response.ResponseName} - {response.Emoji}"));
+            eventEmbed.AddField("Responses", responseSetString);
+
+            await context.RespondAsync($"{context.Member.Mention} - your event has been added!", embed: eventEmbed);
         }
 
         [Command("remove")]
         public async Task RemoveEvent(CommandContext context)
         {
-            await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
+            await context.RespondAsync(
+                $"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
             var eventKey = await GetUserIntResponse(context);
             if (eventKey == null)
             {
                 return;
             }
 
-            var discordEmbed = await GetEventEmbed(context, eventKey.Value);
+            await RemoveEvent(context, eventKey.Value);
+        }
+
+        [Command("remove")]
+        public async Task RemoveEvent(CommandContext context, int eventKey)
+        {
+            var discordEmbed = await GetEventEmbed(context, eventKey);
             if (discordEmbed == null)
             {
                 return;
@@ -173,7 +242,7 @@ namespace DiscordBot.Commands
             try
             {
                 await eventsSheetsService
-                    .RemoveEventAsync(eventKey.Value);
+                    .RemoveEventAsync(eventKey);
                 await context.RespondAsync($"{context.Member.Mention} - poof! It's gone.");
             }
             catch (EventNotFoundException)
@@ -192,35 +261,47 @@ namespace DiscordBot.Commands
                 return;
             }
             
-            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            await ShowEvent(context, eventKey.Value);
+        }
+
+        [Command("show")]
+        private async Task ShowEvent(CommandContext context, int eventKey)
+        {
+            var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
             {
                 return;
             }
-            
+
             await context.RespondAsync($"{context.Member.Mention} - here is the event", embed: eventEmbed);
         }
-  
+
+        [Command("list")]
         public async Task ListEvents(CommandContext context)
         {
             var eventsList = await eventsSheetsService.ListEventsAsync();
+
+            var sortedEventsList = eventsList
+                .Where(x => x.Time > DateTime.Now)
+                .OrderBy(x => x.Time);
 
             var eventsListEmbed = new DiscordEmbedBuilder
             {
                 Title = "Events"
             };
 
-            foreach (var discordEvent in eventsList)
+            foreach (var discordEvent in sortedEventsList)
             {
                 eventsListEmbed.AddField(
                     $"{discordEvent.Key}) {discordEvent.Name}",
-                    $"{discordEvent.Time}"
+                    $"{discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}"
                 );
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - here are all created events.", embed: eventsListEmbed);
+            await context.RespondAsync($"{context.Member.Mention} - here are all upcoming events.", embed: eventsListEmbed);
         }
 
+        [Command("edit")]
         public async Task EditEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -230,7 +311,13 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            await EditEvent(context, eventKey.Value);
+        }
+        
+        [Command("edit")]
+        private async Task EditEvent(CommandContext context, int eventKey)
+        {
+            var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
             {
                 return;
@@ -245,9 +332,25 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await EditEventField(context, eventKey.Value, editField, eventEmbed);
+            await EditEvent(context, eventKey, editField, eventEmbed);
         }
 
+        [Command("edit")]
+        private async Task EditEvent(
+            CommandContext context, 
+            int eventKey, 
+            string editField,
+            DiscordEmbedBuilder? eventEmbed = null)
+        {
+            eventEmbed ??= await GetEventEmbed(context, eventKey);
+            if (eventEmbed == null)
+            {
+                return;
+            }
+            await EditEventField(context, eventKey, editField, eventEmbed);
+        }
+
+        [Command("start")]
         private async Task CreateSignupSheet(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -257,20 +360,28 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            var eventEmbed = await GetEventEmbed(context, eventKey.Value);
+            await CreateSignupSheet(context, eventKey.Value);
+        }
+
+        [Command("start")]
+        private async Task CreateSignupSheet(CommandContext context, int eventKey)
+        {
+            var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
             {
                 return;
             }
 
-            await context.RespondAsync($"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)", embed: eventEmbed);
+            await context.RespondAsync(
+                $"{context.Member.Mention} - start signups for this event? - (``yes``/``no``)",
+                embed: eventEmbed);
             var confirmationResponse = await GetUserConfirmation(context);
             if (confirmationResponse == null || confirmationResponse == false)
             {
                 return;
             }
 
-            await SendSignupMessage(context, eventKey.Value);
+            await SendSignupMessage(context, eventKey);
         }
 
         private async Task SendSignupMessage(CommandContext context, int eventKey)
@@ -290,6 +401,7 @@ namespace DiscordBot.Commands
             }
 
             await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ClearReaction));
+            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":arrows_counterclockwise:"));
         }
 
         private async Task EditEventField(
@@ -363,9 +475,12 @@ namespace DiscordBot.Commands
 
                 return new DiscordEmbedBuilder
                 {
-                    Title = discordEvent.Name,
+                    Title = $"{discordEvent.Name} - {discordEvent.Time:ddd dd MMM yyyy @ h:mm tt}",
                     Description = discordEvent.Description,
-                    Timestamp = new DateTimeOffset(discordEvent.Time)
+                    Footer = new DiscordEmbedBuilder.EmbedFooter
+                    {
+                        Text = $"event key: {discordEvent.Key}"
+                    }
                 };
             }
             catch (EventNotFoundException)
