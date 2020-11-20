@@ -14,6 +14,7 @@ namespace DiscordBot.Commands
 {
     [Group("event")]
     [RequireRoles(RoleCheckMode.All, "Bot Whisperer")]
+    [Description("Initiates the wizard for event-related actions, use sub commands to bypass these")]
     internal class EventCommands : BaseCommandModule
     {
         public const string ClearReaction = ":no_entry_sign:";
@@ -76,7 +77,6 @@ namespace DiscordBot.Commands
         }
 
         [GroupCommand]
-        [Description("Initiates the wizard for event-related actions")]
         public async Task Event(CommandContext context)
         {
             await context.RespondAsync(
@@ -119,6 +119,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("create")]
+        [Description("Begins the creation wizard")]
         public async Task CreateEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the name of the event?");
@@ -132,7 +133,9 @@ namespace DiscordBot.Commands
         }
 
         [Command("create")]
-        public async Task CreateEvent(CommandContext context, string eventName)
+        public async Task CreateEvent(
+            CommandContext context,
+            [Description("Must be surrounded by quotes")] string eventName)
         {
             await context.RespondAsync($"{context.Member.Mention} - give an event description.");
             var eventDescription = await GetUserResponse(context);
@@ -145,7 +148,10 @@ namespace DiscordBot.Commands
         }
 
         [Command("create")]
-        public async Task CreateEvent(CommandContext context, string eventName, string eventDescription)
+        public async Task CreateEvent(
+            CommandContext context,
+            [Description("Must be surrounded by quotes")] string eventName,
+            [Description("Must be surrounded by quotes")] string eventDescription)
         {
             await context.RespondAsync($"{context.Member.Mention} - what time is your event?");
             var eventTime = await GetUserTimeResponse(context);
@@ -157,8 +163,12 @@ namespace DiscordBot.Commands
             await CreateEvent(context, eventName, eventDescription, eventTime.Value.DateTime);
         }
 
-        [Command("create")] 
-        public async Task CreateEvent(CommandContext context, string eventName, string eventDescription, DateTime eventTime)
+        [Command("create")]
+        public async Task CreateEvent(
+            CommandContext context,
+            [Description("Must be surrounded by quotes")] string eventName,
+            [Description("Must be surrounded by quotes")] string eventDescription,
+            [Description("Must be in a valid DateTime Format")] DateTime eventTime)
         {
             var responseEmbed = new DiscordEmbedBuilder
             {
@@ -183,12 +193,13 @@ namespace DiscordBot.Commands
         }
 
         [Command("create")]
+        [Description("Creates an event using specified parameters. You can choose how many parameters to add (provided they are in order)")]
         public async Task CreateEvent(
             CommandContext context,
-            string eventName,
-            string eventDescription,
-            DateTime eventTime,
-            int? responseSetIndex)
+            [Description("Must be surrounded by quotes")] string eventName,
+            [Description("Must be surrounded by quotes")] string eventDescription,
+            [Description("Must be in a valid DateTime Format")] DateTime eventTime,
+            [Description("Corresponds to a response set, omit this to see available sets")] int? responseSetIndex)
         {
             if (responseSetIndex == null || responseSetIndex.Value >= ResponseSets.Length || responseSetIndex.Value < 0)
             {
@@ -211,6 +222,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("remove")]
+        [Description("Removes all necessary things relating to a specific event")]
         public async Task RemoveEvent(CommandContext context)
         {
             await context.RespondAsync(
@@ -225,7 +237,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("remove")]
-        public async Task RemoveEvent(CommandContext context, int eventKey)
+        public async Task RemoveEvent(CommandContext context, [Description("Unique key corresponding to event")] int eventKey)
         {
             var discordEmbed = await GetEventEmbed(context, eventKey);
             if (discordEmbed == null)
@@ -255,6 +267,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("show")]
+        [Description("Shows details of a specific event")]
         public async Task ShowEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -268,7 +281,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("show")]
-        private async Task ShowEvent(CommandContext context, int eventKey)
+        private async Task ShowEvent(CommandContext context, [Description("Unique key corresponding to event")] int eventKey)
         {
             var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
@@ -280,6 +293,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("list")]
+        [Description("Produces a list of all event names and times")]
         public async Task ListEvents(CommandContext context)
         {
             var eventsList = await eventsSheetsService.ListEventsAsync();
@@ -305,6 +319,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("edit")]
+        [Description("Begins the editing event wizard")]
         public async Task EditEvent(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -318,7 +333,7 @@ namespace DiscordBot.Commands
         }
         
         [Command("edit")]
-        private async Task EditEvent(CommandContext context, int eventKey)
+        private async Task EditEvent(CommandContext context, [Description("Unique key corresponding to event")] int eventKey)
         {
             var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
@@ -340,10 +355,10 @@ namespace DiscordBot.Commands
 
         [Command("edit")]
         private async Task EditEvent(
-            CommandContext context, 
-            int eventKey, 
-            string editField,
-            DiscordEmbedBuilder? eventEmbed = null)
+            CommandContext context,
+            [Description("Unique key corresponding to event")] int eventKey,
+            [Description("'name', 'description' or 'time'")] string editField,
+            [Description("Internal bot use only, please ignore")] DiscordEmbedBuilder? eventEmbed = null)
         {
             eventEmbed ??= await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
@@ -354,6 +369,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("start")]
+        [Description("Opens the event for signups")]
         private async Task CreateSignupSheet(CommandContext context)
         {
             await context.RespondAsync($"{context.Member.Mention} - what is the event key? (use the ``list`` option to find out)");
@@ -367,7 +383,7 @@ namespace DiscordBot.Commands
         }
 
         [Command("start")]
-        private async Task CreateSignupSheet(CommandContext context, int eventKey)
+        private async Task CreateSignupSheet(CommandContext context, [Description("Unique key corresponding to event")] int eventKey)
         {
             var eventEmbed = await GetEventEmbed(context, eventKey);
             if (eventEmbed == null)
