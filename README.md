@@ -53,7 +53,8 @@ have the ability to add the bot to a server in which you have the "Manage Server
 - [ ] Notify users that their event is going to start
 - [ ] Allow admins to forcibly sign people up to events with the discord bot
 - [ ] Allow creation of recurring events
-- [ ] Add handling for multiple timezones (eg. Budapest and London)
+- [ ] Add handling for multiple timezones (eg. Bucharest and London)
+- [ ] Generate summary message with link to open signup messages that stays as the latest message on the event channel
 
 ### Complications that need to be addressed
 
