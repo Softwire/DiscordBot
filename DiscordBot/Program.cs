@@ -89,7 +89,7 @@ namespace DiscordBot
 
             switch (eventArguments.Emoji.GetDiscordName())
             {
-                case (":arrows_counterclockwise:"):
+                case (EventCommands.RefreshReaction):
                     await UpdateSignupMessage(eventArguments, discordEvent, eventsSheetsService);
                     break;
                 case (EventCommands.ClearReaction):
