@@ -17,6 +17,9 @@ namespace DiscordBot.Commands
     internal class EventCommands : BaseCommandModule
     {
         public const string ClearReaction = ":no_entry_sign:";
+        public const string RefreshReaction = ":arrows_counterclockwise:";
+
+        public const string SignupChannelName = "events";
 
         private static readonly string[] EventOperations =
         {
@@ -381,18 +384,32 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            await SendSignupMessage(context, eventKey);
+            try
+            {
+                var signupChannel = context.Guild.Channels
+                    .First(channel => channel.Value.Name == SignupChannelName)
+                    .Value;
+
+                await SendSignupMessage(context, eventKey, signupChannel);
+            }
+            catch (InvalidOperationException)
+            {
+                await context.RespondAsync($"{context.Member.Mention} - there's no channel named #event!");
+            }
         }
 
-        private async Task SendSignupMessage(CommandContext context, int eventKey)
-        { 
+        private async Task SendSignupMessage(CommandContext context, int eventKey, DiscordChannel signupChannel)
+        {
             var discordEvent = await eventsSheetsService.GetEventAsync(eventKey);
 
             var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(eventKey);
-
             var signupEmbed = GetSignupEmbed(discordEvent, signupsByResponse);
 
-            var signupMessage = await context.RespondAsync($"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed);
+            var signupMessage = await context.Client.SendMessageAsync(
+                signupChannel,
+                $"Signups are open for __**{discordEvent.Name}**__!", embed: signupEmbed
+            );
+
             await eventsSheetsService.AddMessageIdToEventAsync(eventKey, signupMessage.Id);
 
             foreach (var response in signupsByResponse.Keys)
@@ -401,7 +418,7 @@ namespace DiscordBot.Commands
             }
 
             await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ClearReaction));
-            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":arrows_counterclockwise:"));
+            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, RefreshReaction));
         }
 
         private async Task EditEventField(
