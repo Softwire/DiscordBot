@@ -3,10 +3,8 @@ using System.Threading.Tasks;
 using DiscordBot.Commands;
 using DiscordBot.DataAccess;
 using DiscordBot.DataAccess.Exceptions;
-using DiscordBot.DataAccess.Models;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
-using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
@@ -47,102 +45,75 @@ namespace DiscordBot
 
             commands.RegisterCommands<EventCommands>();
 
+            var reactionBuffer = new ReactionBuffer(eventsSheetsService);
+
             discord.UseInteractivity(new InteractivityConfiguration());
             discord.MessageReactionAdded += async (client, eventArguments) =>
             {
-                await OnMessageReactionAdded(client, eventArguments, eventsSheetsService);
+                await OnMessageReactionAdded(client, eventArguments, eventsSheetsService, reactionBuffer);
             };
 
             await discord.ConnectAsync();
             await Task.Delay(-1);
         }
 
-        private static async Task OnMessageReactionAdded(
+        private static Task OnMessageReactionAdded(
             DiscordClient client,
             MessageReactionAddEventArgs eventArguments,
-            IEventsSheetsService eventsSheetsService)
+            IEventsSheetsService eventsSheetsService,
+            ReactionBuffer reactionBuffer)
         {
             // Skip if event was triggered by the bot
             if (eventArguments.User == client.CurrentUser)
             {
-                return;
+                return Task.CompletedTask;
             }
 
-            var discordEvent = await GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id, eventsSheetsService);
-            if (discordEvent == null)
+            // Skip if reaction is not in the signup channel
+            if (eventArguments.Channel.Name != EventCommands.SignupChannelName)
             {
-                return;
+                return Task.CompletedTask;
             }
 
-            await ProcessReaction(client, eventArguments, discordEvent, eventsSheetsService);
+            _ = Task.Run(async () =>
+            {
+                await ProcessReaction(eventArguments, eventsSheetsService, reactionBuffer);
+            });
+
+            return Task.CompletedTask;
         }
 
         private static async Task ProcessReaction(
-            DiscordClient client,
             MessageReactionAddEventArgs eventArguments,
-            DiscordEvent discordEvent,
-            IEventsSheetsService eventsSheetsService)
+            IEventsSheetsService eventsSheetsService,
+            ReactionBuffer reactionBuffer)
         {
-            var dmChannel = await eventArguments.Guild
-                .GetMemberAsync(eventArguments.User.Id).Result
-                .CreateDmChannelAsync();
-
-            switch (eventArguments.Emoji.GetDiscordName())
-            {
-                case (EventCommands.RefreshReaction):
-                    await UpdateSignupMessage(eventArguments, discordEvent, eventsSheetsService);
-                    break;
-                case (EventCommands.ClearReaction):
-                    await eventsSheetsService.ClearResponsesForUserAsync(discordEvent.Key, eventArguments.User.Id);
-                    await client.SendMessageAsync(
-                        dmChannel,
-                        $"You've signed off {discordEvent.Name}."
-                    );
-                    break;
-                default:
-                    await AddResponse(client, eventArguments, discordEvent, dmChannel, eventsSheetsService);
-                    break;
-            }
-
             await eventArguments.Message.DeleteReactionAsync(eventArguments.Emoji, eventArguments.User);
-        }
 
-        private static async Task AddResponse(
-            DiscordClient client,
-            MessageReactionAddEventArgs eventArguments,
-            DiscordEvent discordEvent,
-            DiscordChannel dmChannel,
-            IEventsSheetsService eventsSheetsService)
-        {
-            try
+            if (eventArguments.Emoji.GetDiscordName() == EventCommands.RefreshReaction)
             {
-                await eventsSheetsService.AddResponseForUserAsync(
-                    discordEvent.Key,
-                    eventArguments.User.Id,
-                    eventArguments.Emoji.GetDiscordName()
-                );
+                await UpdateSignupMessage(eventArguments, eventsSheetsService);
             }
-            catch (ResponseNotFoundException)
-            {
-                return;
+            else
+            { 
+                await reactionBuffer.AddReaction(eventArguments);
             }
-
-            await client.SendMessageAsync(
-                dmChannel,
-                $"You've responded to {discordEvent.Name} as {eventArguments.Emoji.Name}."
-            );
         }
 
         private static async Task UpdateSignupMessage(
             MessageReactionAddEventArgs eventArguments,
-            DiscordEvent discordEvent,
             IEventsSheetsService eventsSheetsService)
         {
-            var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
-            await eventArguments.Message.ModifyAsync(
-                eventArguments.Message.Content,
-                GetSignupEmbed(discordEvent, signupsByResponse).Build()
-            );
+
+            var discordEvent = await GetEventFromMessageIdOrDefaultAsync(eventArguments.Message.Id, eventsSheetsService);
+            if (discordEvent != null)
+            {
+                var signupsByResponse = await eventsSheetsService.GetSignupsByResponseAsync(discordEvent.Key);
+                await eventArguments.Message.ModifyAsync(
+                    eventArguments.Message.Content,
+                    GetSignupEmbed(discordEvent, signupsByResponse).Build()
+                );
+            }
         }
     }
 }

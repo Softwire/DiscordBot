@@ -19,7 +19,7 @@ namespace DiscordBot.Commands
         public const string ClearReaction = ":no_entry_sign:";
         public const string RefreshReaction = ":arrows_counterclockwise:";
 
-        private const string SignupChannelName = "events";
+        public const string SignupChannelName = "events";
 
         private static readonly string[] EventOperations =
         {
