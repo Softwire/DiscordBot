@@ -3,6 +3,68 @@
 This Discord bot makes it easier for morale event admins to organise events, and for people to sign up to those events.
 It links up with Google Sheets to generate an at-a-glance list of all the events happening, and has other features to make this all easier.
 
+The main branch currently publishes to the live bot "ReleaseBot". Once you've joined the Discord Developer team you'll 
+have the ability to add the bot to a server in which you have the "Manage Server" or Admin permissions. 
+`?help` will show you the commands the bot currently has and you can do `?help [command] [optional: subcommands]` for more information.
+
+## Useful links
+
+[DSharpPLus API](https://dsharpplus.github.io/)
+
+[Discord Developer Portal](https://discord.com/developers/applications)
+
+## TODO List
+
+### Initial Setup
+
+- [x] Set up Discord Developer Team
+- [x] Set up Google Sheets API Account
+- [x] Set up Shared Azure Account
+- [x] Set up Zoho Vault
+- [x] Create Discord bots (for both testing and release)
+- [x] Get Azure deployment working
+- [x] Set up continuous integration on main branch
+- [x] Set up build testing on all branches
+- [x] Create basic bot skeleton with DSharpPlus and test it works
+
+### Core Features
+
+- [x] Set up interactivity with discord bot
+- [x] Event creation conversation with discord bot
+- [x] Event creation integrated with Google sheets
+- [x] Event removal conversation with discord bot
+- [x] Event removal integrated with Google sheets
+- [x] Event editing conversation with discord bot
+- [x] Event editing integrated with Google sheets
+- [x] Listing all events with discord bot conversation
+- [x] Showing specific events with discord bot conversation
+- [x] Set up Sign up sheet in Google sheets
+- [x] Create signup/start event command with discord bot conversation
+- [x] Allow people to signup using reactions
+- [x] Set up user Direct Messaging on signup
+- [x] Group commands to allow bypassing of full conversation with bot
+- [x] Remove event signup form on event removal
+- [x] Allow people to unsign from events
+- [x] Hard code in response sets for events
+- [x] Make bot post events in separate channel
+- [ ] Notify users that their event is going to start
+- [ ] Allow admins to forcibly sign people up to events with the discord bot
+- [ ] Allow creation of recurring events
+
+### Complications that need to be addressed
+
+- [x] Migrate from DSharpPLus 3.x to 4.x 
+- [x] Batch Google sheet API requests to avoid hitting the 100 requests per 100s limit
+- [ ] Implement some sort of job scheduling for notifications (maybe using [Quartz Scheduler](https://www.quartz-scheduler.net/))
+
+### Stretch Goals
+
+- [ ] Allow the creation of custom response sets with the bot
+- [ ] Notify users if the event they signed up to has changed
+- [ ] Find a suitable alternative to Google Sheets
+- [ ] Allow users to disable bot reminder notifications
+- [ ] Add pagination to event lists (limit 5 per page)
+ 
 ## Setup
 
 ### Creating a bot for local testing
