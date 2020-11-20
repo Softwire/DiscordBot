@@ -89,7 +89,7 @@ editor to follow the subsequent steps.
     2. Don't give it any access, roles, or give users special access (so just click continue and done)
 3. Click on your newly made service account, and add a key (Add key -> create new key -> JSON -> Create)
 4. A JSON credentials file will download. You will need this to run the bot locally.
-5. Create a Google Sheet of the right format (easiest just to copy someone else's test sheet)
+5. Create a Google Sheet of the right format (just duplicate [this one](https://docs.google.com/spreadsheets/d/1vhCdGV9ivLbPyoAME4flLYYgEJBb7QspksMfydEa1tc/edit?usp=sharing))
 6. Add the email address of your service account as an editor to this sheet using the Google Sheets "Share"
 functionality.
 7. You need to find the spreadsheet ID of the sheet you made. At the moment, this is easiest extracted from the URL
