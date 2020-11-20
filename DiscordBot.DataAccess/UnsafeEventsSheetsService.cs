@@ -262,6 +262,16 @@ namespace DiscordBot.DataAccess
             }
         }
 
+#pragma warning disable 1998 // Turn off compiler warning for synchronous unimplemented methods
+        public async Task AddResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
+        {
+        }
+
+        public async Task ClearResponseBatchAsync(IEnumerable<ResponseReaction> reactions)
+        {
+        }
+#pragma warning restore 1998
+
         public async Task ClearResponsesForUserAsync(int eventKey, ulong userId)
         {
             var rowNumber = await GetResponseRowNumberAsync(eventKey, userId);

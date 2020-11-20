@@ -16,6 +16,8 @@ namespace DiscordBot.Commands
     [RequireRoles(RoleCheckMode.All, "Bot Whisperer")]
     internal class EventCommands : BaseCommandModule
     {
+        public const string ClearReaction = ":no_entry_sign:";
+
         private static readonly string[] EventOperations =
         {
             "create",
@@ -397,7 +399,8 @@ namespace DiscordBot.Commands
             {
                 await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, response.Emoji));
             }
-            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":no_entry_sign:"));
+
+            await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ClearReaction));
             await signupMessage.CreateReactionAsync(DiscordEmoji.FromName(context.Client, ":arrows_counterclockwise:"));
         }
 
