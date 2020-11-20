@@ -19,7 +19,7 @@ namespace DiscordBot.Commands
         public const string ClearReaction = ":no_entry_sign:";
         public const string RefreshReaction = ":arrows_counterclockwise:";
 
-        public const string SignupChannelName = "events";
+        private const string SignupChannelName = "events";
 
         private static readonly string[] EventOperations =
         {
@@ -384,18 +384,17 @@ namespace DiscordBot.Commands
                 return;
             }
 
-            try
-            {
-                var signupChannel = context.Guild.Channels
-                    .First(channel => channel.Value.Name == SignupChannelName)
-                    .Value;
+            var signupChannel = context.Guild.Channels
+                .FirstOrDefault(channel => channel.Value.Name == SignupChannelName)
+                .Value;
 
-                await SendSignupMessage(context, eventKey, signupChannel);
-            }
-            catch (InvalidOperationException)
+            if (signupChannel == null)
             {
-                await context.RespondAsync($"{context.Member.Mention} - there's no channel named #event!");
+                await context.RespondAsync($"{context.Member.Mention} - there's no channel named #{SignupChannelName}!");
+                return;
             }
+
+            await SendSignupMessage(context, eventKey, signupChannel);
         }
 
         private async Task SendSignupMessage(CommandContext context, int eventKey, DiscordChannel signupChannel)
